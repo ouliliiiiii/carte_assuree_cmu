@@ -1,0 +1,13 @@
+{
+    "name": "dfees_19mcsql/cmu_project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "ouly gaye",
+            "email": "oulygaye19@gmail.com"
+        }
+    ],
+    "require": {
+        "phpoffice/phpspreadsheet": "^4.3"
+    }
+}

@@ -39,6 +39,11 @@ if (isset($_GET['added'])) {
    
     <a href="ajoutbeneficiaire.php" class="btn btn-success mb-3">Saisir un bénéficiaire</a>
     <a href="exporterliste.php" class="btn btn-success mb-3">Exporter la liste des benefciaires</a>
+    <form action="importerliste.php" method="POST" enctype="multipart/form-data" class="mb-3">
+        <input type="file" name="fichier_excel" accept=".xlsx, .xls" required />
+        <button type="submit" class="btn btn-primary btn-sm">Importer un fichier Excel</button>
+    </form>
+
 
     <h1>Liste des bénéficiaires</h1>
 

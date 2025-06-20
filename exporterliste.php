@@ -11,7 +11,6 @@ require_once 'db.php';
 
 // Requête pour récupérer les bénéficiaires avec les colonnes spécifiques
 $query = "SELECT 
-            id,
             Code_Immatriculation,
             Nom,
             Prenom,
