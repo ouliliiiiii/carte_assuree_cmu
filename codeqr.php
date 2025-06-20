@@ -13,6 +13,15 @@ if ($code !== '') {
     <meta charset="UTF-8" />
     <title>QR Code - <?= htmlspecialchars($code) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Style CSS interne -->
+    <style>
+        .retour-accueil {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
 <div class="container text-center mt-5">
@@ -21,7 +30,8 @@ if ($code !== '') {
         <h1>QR Code pour le code : <strong><?= htmlspecialchars($code) ?></strong></h1>
         <img src="https://api.qrserver.com/v1/create-qr-code/?data=<?= urlencode($url) ?>&size=300x300" alt="QR Code" class="my-3" />
         <p>En scannant ce QR code, vous accéderez à :</p>
-        <a href="<?= htmlspecialchars($url) ?>" target="_blank"><?= htmlspecialchars($url) ?></a>
+        <a href="<?= htmlspecialchars($url) ?>" target="_blank"><?= htmlspecialchars($url) ?></a> 
+        <a href="accueil.php" class="btn btn-secondary retour-accueil">Retour à l'accueil</a>
     <?php else: ?>
         <div class="alert alert-danger">Aucun code fourni !</div>
         <a href="accueil.php" class="btn btn-secondary">Retour à l'accueil</a>
