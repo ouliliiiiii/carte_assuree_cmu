@@ -12,11 +12,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $sexe = $_POST['sexe'] ?? '';
     $telephone = $_POST['telephone'] ?? '';
     $adresse = $_POST['adresse'] ?? '';
+    $regime = $_POST['regime'] ?? '';
+    $assureur = $_POST['assureur'] ?? '';
+    $type_beneficiaire = $_POST['type_beneficiaire'] ?? '';
+    $date_cotisation = $_POST['date_cotisation'] ?? '';
+    $date_fin_cotisation = $_POST['date_fin_cotisation'] ?? '';
     
 
     if ($code && $nom && $prenom) {
         $qr_url = "http://$ip_pc/QR/detail.php?code=" . urlencode($code);
-        $stmt = $pdo->prepare("INSERT INTO beneficiaires (Code_Immatriculation, Nom, Prenom, Date_Naissance, Sexe, Telephone, Adresse, qr_code_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO beneficiaires (Code_Immatriculation, Nom, Prenom, Date_Naissance, Sexe, Telephone, Adresse, Regime, Assureur, Type_Beneficiaire, Date_Cotisation, Date_Fin_Cotisation, qr_code_url) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         try {
             $stmt->execute([$code, $nom, $prenom, $date_naissance, $sexe, $telephone, $adresse, $qr_url]);
             // Redirection avec code ajouté pour afficher le pop-up et QR Code

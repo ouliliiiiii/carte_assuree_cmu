@@ -36,8 +36,11 @@ if (isset($_GET['added'])) {
     </script>
     <?php endif; ?>
 
+   
+    <a href="ajoutbeneficiaire.php" class="btn btn-success mb-3">Saisir un bénéficiaire</a>
+    <a href="exporterliste.php" class="btn btn-success mb-3">Exporter la liste des benefciaires</a>
+
     <h1>Liste des bénéficiaires</h1>
-    <a href="ajoutbeneficiaire.php" class="btn btn-success mb-3">Ajouter un bénéficiaire</a>
 
     <table class="table table-striped">
         <thead>
