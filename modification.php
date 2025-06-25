@@ -14,20 +14,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $type_beneficiaire = $_POST['type_beneficiaire'] ?? '';
     $date_cotisation = $_POST['date_cotisation'] ?: null; // ✅ Convertir '' en NULL
     $date_fin_cotisation = $_POST['date_fin_cotisation'] ?: null; // ✅ Convertir '' en NULL
+    $region = $_POST['region'] ?? '';
+    $departement = $_POST['departement'] ?? '';
+    $groupe = $_POST['groupe'] ?? '';
+    $type_adhesion = $_POST['type_adhesion'] ?? '';
+    $type_cotisation = $_POST['type_cotisation'] ?? '';
+    $cni = $_POST['cni'] ?? '';
+   
+    
+
+    $dateNaissance = !empty($date_naissance) ? date('Y-m-d', strtotime($date_naissance)) : null;
+    $dateCotisation = !empty($date_cotisation) ? date('Y-m-d', strtotime($date_cotisation)) : null;
+    $dateFinCotisation = !empty($date_fin_cotisation) ? date('Y-m-d', strtotime($date_fin_cotisation)) : null;
+    
 
     if ($code && $nom && $prenom) {
         $stmt = $pdo->prepare("
             UPDATE beneficiaires SET 
                 Nom = ?, Prenom = ?, Date_Naissance = ?, Sexe = ?, Telephone = ?, Adresse = ?, 
-                Regime = ?, Assureur = ?, Type_Beneficiaire = ?, Date_Cotisation = ?, Date_Fin_Cotisation = ?
+                Regime = ?, Assureur = ?, Type_Beneficiaire = ?, Date_Cotisation = ?, Date_Fin_Cotisation = ?, 
+                Region = ?, Departement = ?, Groupe = ?, Type_Adhesion = ?, Type_Cotisation = ?,CNI  = ? 
             WHERE Code_Immatriculation = ?
         ");
 
         try {
             $stmt->execute([
-                $nom, $prenom, $date_naissance ?: null, $sexe, $telephone, $adresse,
-                $regime, $assureur, $type_beneficiaire, $date_cotisation, $date_fin_cotisation,
-                $code
+                $nom, $prenom, $dateNaissance ?: null, $sexe, $telephone, $adresse,
+                $regime, $assureur, $type_beneficiaire, $dateCotisation, $dateFinCotisation,
+                $region, $departement, $groupe, $type_adhesion, $type_cotisation, $cni, $code
             ]);
 
             header("Location: accueil.php?updated=" . urlencode($code));

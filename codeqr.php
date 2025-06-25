@@ -1,10 +1,10 @@
 <?php
-$ip_pc = '10.100.226.203'; // Remplace par l’IP locale de ton PC
+$ip_pc = '192.168.1.8'; // Remplace par l’IP locale de ton PC
 $code = $_GET['code'] ?? '';
 $url = '';
 
 if ($code !== '') {
-    $url = "http://$ip_pc/QR/detail.php?code=" . urlencode($code);
+    $url = "http://$ip_pc/carte_assur-e_cmu/detail.php?code=" . urlencode($code);
 }
 ?>
 <!DOCTYPE html>
@@ -22,8 +22,17 @@ if ($code !== '') {
             z-index: 1000;
         }
     </style>
+     <!-- Lien vers le fichier CSS -->
+     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<header class="navbar ">
+            <div class="col-lg-4" >
+                 <img src="images/Logosen.png" style="width: 300px;">   
+            </div>
+             
+      </header>
 <div class="container text-center mt-5">
 
     <?php if ($url): ?>

@@ -2,7 +2,7 @@
 $host = "localhost:3306";
 $db = "qr";
 $user = "root";
-$pass = "0000";
+$pass = "";
 
 try 
 {

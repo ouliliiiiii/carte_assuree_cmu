@@ -1,15 +1,11 @@
 <?php
-// Connexion à la base de données
-//try {
-  //  $conn = new PDO("mysql:host=localhost;dbname=votre_base_de_donnees", "root", "");
-    //$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-//} catch(PDOException $e) {
-  //  die("Erreur de connexion : " . $e->getMessage());
-//}
-
 require_once 'db.php';
 
-// Requête pour récupérer les bénéficiaires avec les colonnes spécifiques
+// Récupérer les paramètres de filtre
+$filtreType = isset($_GET['type_beneficiaire']) ? $_GET['type_beneficiaire'] : '';
+$filtreRegime = isset($_GET['regime']) ? $_GET['regime'] : '';
+
+// Construire la requête SQL de base avec les colonnes souhaitées
 $query = "SELECT 
             id,
             Code_Immatriculation,
@@ -24,20 +20,49 @@ $query = "SELECT
             Type_Beneficiaire,
             Date_Cotisation,
             Date_Fin_Cotisation,
-            qr_code_url
-          FROM beneficiaires";
-          
+            qr_code_url,
+            Region, 
+            Departement, 
+            Groupe, 
+            Type_Adhesion, 
+            Type_Cotisation,  
+            CNI
+          FROM beneficiaires
+          WHERE 1=1";
+
+// Ajouter les conditions de filtre
+$params = [];
+if (!empty($filtreType)) {
+    $query .= " AND Type_Beneficiaire = ?";
+    $params[] = $filtreType;
+}
+
+if (!empty($filtreRegime)) {
+    $query .= " AND Regime = ?";
+    $params[] = $filtreRegime;
+}
+
+// Préparation et exécution de la requête
 $stmt = $pdo->prepare($query);
-$stmt->execute();
+$stmt->execute($params);
 $beneficiaires = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if (count($beneficiaires) === 0) {
-    die("Aucun bénéficiaire à exporter");
+    die("Aucun bénéficiaire à exporter avec les critères sélectionnés");
+}
+
+// Générer un nom de fichier significatif
+$filename = 'beneficiaires_export_' . date('Y-m-d_H-i');
+if (!empty($filtreType)) {
+    $filename .= '_' . str_replace(' ', '_', $filtreType);
+}
+if (!empty($filtreRegime)) {
+    $filename .= '_' . str_replace(' ', '_', $filtreRegime);
 }
 
 // Entêtes HTTP pour forcer le téléchargement
 header('Content-Type: text/csv; charset=utf-8');
-header('Content-Disposition: attachment; filename=beneficiaires_export_'.date('Y-m-d_H-i').'.csv');
+header('Content-Disposition: attachment; filename=' . $filename . '.csv');
 
 // Création du fichier CSV en sortie
 $output = fopen('php://output', 'w');
@@ -60,7 +85,13 @@ $entetes = [
     'Type Bénéficiaire',
     'Date Cotisation',
     'Date Fin Cotisation',
-    'QR Code URL'
+    'QR Code URL',
+    'Region', 
+    'Departement', 
+    'Groupe', 
+    'Type_Adhesion', 
+    'Type_Cotisation',  
+    'CNI'
 ];
 fputcsv($output, $entetes, ';');
 
