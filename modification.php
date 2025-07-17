@@ -1,6 +1,8 @@
 <?php
 require_once 'db.php';
 
+$dateEnreg = date('Y-m-d H:i:s'); // Date et heure actuelle
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $code = $_POST['code'] ?? '';
     $nom = trim($_POST['nom'] ?? '');
@@ -12,8 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $regime = $_POST['regime'] ?? '';
     $assureur = $_POST['assureur'] ?? '';
     $type_beneficiaire = $_POST['type_beneficiaire'] ?? '';
-    $date_cotisation = $_POST['date_cotisation'] ?: null; // ✅ Convertir '' en NULL
-    $date_fin_cotisation = $_POST['date_fin_cotisation'] ?: null; // ✅ Convertir '' en NULL
+    $date_cotisation = $_POST['date_cotisation'] ?: null; //Convertir '' en NULL
+    $date_fin_cotisation = $_POST['date_fin_cotisation'] ?: null; // Convertir '' en NULL
     $region = $_POST['region'] ?? '';
     $departement = $_POST['departement'] ?? '';
     $groupe = $_POST['groupe'] ?? '';
@@ -33,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             UPDATE beneficiaires SET 
                 Nom = ?, Prenom = ?, Date_Naissance = ?, Sexe = ?, Telephone = ?, Adresse = ?, 
                 Regime = ?, Assureur = ?, Type_Beneficiaire = ?, Date_Cotisation = ?, Date_Fin_Cotisation = ?, 
-                Region = ?, Departement = ?, Groupe = ?, Type_Adhesion = ?, Type_Cotisation = ?,CNI  = ? 
+                Region = ?, Departement = ?, Groupe = ?, Type_Adhesion = ?, Type_Cotisation = ?,CNI  = ?, Date_Enreg = ?
             WHERE Code_Immatriculation = ?
         ");
 
@@ -41,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([
                 $nom, $prenom, $dateNaissance ?: null, $sexe, $telephone, $adresse,
                 $regime, $assureur, $type_beneficiaire, $dateCotisation, $dateFinCotisation,
-                $region, $departement, $groupe, $type_adhesion, $type_cotisation, $cni, $code
+                $region, $departement, $groupe, $type_adhesion, $type_cotisation, $cni, $dateEnreg, $code
             ]);
 
             header("Location: accueil.php?updated=" . urlencode($code));

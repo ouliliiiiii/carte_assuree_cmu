@@ -1,4 +1,5 @@
 <?php
+session_start();
 require_once 'db.php';
 
 if (isset($_GET['code'])) {
@@ -50,16 +51,52 @@ if (!$beneficiaire) {
     
 </head>
 <body>
-    <?php 
-        //On appelle le header de la page
-        include 'header.php'; 
-    ?>
+    <header class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <img src="images/Logosen.png" class="logo" alt="SENCSU Logo">
+                </div>
+                <div class="col-md-6 text-end">
+                    <span class="text-muted"><?= date('d/m/Y H:i') ?></span>
+                </div>
+            </div>
+        </div>
+    </header>
 
     <div class="container mb-5">
+        <div class="row">
+             <h2 class="section-title">Fiche de l'assuré</h2>
+                    <div class="col-lg-12 mb-4 mb-sm-5">
+                        <div class="card card-style1 border-0">
+                            <div class="card-body p-1-9 p-sm-2-3 p-md-6 p-lg-7">
+                                <div class="row align-items-center">
+                                    <div class="col-lg-4 mb-4 mb-lg-0">
+                                        <?php if (!empty($beneficiaire['photo'])): ?>
+                                                <img src="<?= htmlspecialchars($beneficiaire['photo']) ?>" alt="Photo">
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-lg-4 mb-4 mb-lg-0">
+                                       <h3 class="mb-0"><?= htmlspecialchars($beneficiaire['Prenom'] . ' ' .$beneficiaire['Nom']) ?></h3>
+                                    </div>
+                                    <div class="col-lg-4 mb-4 mb-lg-0">
+                                        <?= $etat ?>
+                                    </div>
+                                
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+        </div>
         <div class="row mb-4">
-            <div class="col-md-8">
+            <div class="col-md-4">
                 <h2 class="section-title">Fiche de l'assuré</h2>
                 <h3 class="mb-0"><?= htmlspecialchars($beneficiaire['Prenom'] . ' ' .$beneficiaire['Nom']) ?></h3>
+            </div>
+            <div class="col-md-4">
+              <?php if (!empty($beneficiaire['photo'])): ?>
+                    <img src="<?= htmlspecialchars($beneficiaire['photo']) ?>" alt="Photo" width="100">
+            <?php endif; ?>
             </div>
             <div class="col-md-4 text-end">
                 <?= $etat ?>
@@ -77,6 +114,10 @@ if (!$beneficiaire) {
                        <!-- <img src="images/avatar.png" class="profile-img mb-4" alt="Photo profil"> -->
                         
                         <div class="text-start">
+                            <div class="info-item">
+                                    <span class="info-label">Date Enregistrement:</span>
+                                    <span class="info-value"><?= formatDate($beneficiaire['Date_Enreg']) ?></span>
+                            </div>
                             <div class="info-item">
                                 <span class="info-label">Numéro d'immatriculation:</span>
                                 <span class="info-value"><?= htmlspecialchars($beneficiaire['Code_Immatriculation']) ?></span>
@@ -206,19 +247,36 @@ if (!$beneficiaire) {
                             </div>
                         </div>
                         
-                        <div class="progress mt-4" style="height: 10px;">
-                            <?php
-                            $dateDebut = new DateTime($beneficiaire['Date_Cotisation']);
-                            $dateFin = new DateTime($beneficiaire['Date_Fin_Cotisation']);
-                            $aujourdhui = new DateTime();
-                            
-                            $totalDays = $dateFin->diff($dateDebut)->days;
-                            $daysPassed = $aujourdhui->diff($dateDebut)->days;
-                            $percentage = min(100, max(0, ($daysPassed / $totalDays) * 100));
-                            ?>
-                            <div class="progress-bar bg-success" role="progressbar" style="width: <?= $percentage ?>%" 
-                                 aria-valuenow="<?= $percentage ?>" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
+                            <div class="progress mt-4" style="height: 10px;">
+                                    <?php
+                                    if (!empty($beneficiaire['Date_Cotisation']) && !empty($beneficiaire['Date_Fin_Cotisation'])) {
+                                        $dateDebut = new DateTime($beneficiaire['Date_Cotisation']);
+                                        $dateFin = new DateTime($beneficiaire['Date_Fin_Cotisation']);
+                                        $aujourdhui = new DateTime();
+
+                                        $totalDays = $dateFin->diff($dateDebut)->days ?: 1; // évite division par zéro
+                                        $daysPassed = $aujourdhui->diff($dateDebut)->invert ? $aujourdhui->diff($dateDebut)->days : 0;
+                                        $percentage = min(100, max(0, ($daysPassed / $totalDays) * 100));
+
+                                        // Choix de la couleur
+                                        if ($percentage < 50) {
+                                            $barClass = 'bg-success';
+                                        } elseif ($percentage < 80) {
+                                            $barClass = 'bg-warning';
+                                        } else {
+                                            $barClass = 'bg-danger';
+                                        }
+                                    } else {
+                                        $percentage = 0;
+                                        $barClass = 'bg-secondary';
+                                    }
+                                    ?>
+                                    <div class="progress-bar <?= $barClass ?>" role="progressbar"
+                                        style="width: <?= $percentage ?>%"
+                                        aria-valuenow="<?= $percentage ?>" aria-valuemin="0" aria-valuemax="100">
+                                    </div>
+                            </div>
+
                         <small class="text-muted">Progression de la période de couverture</small>
                     </div>
                 </div>
@@ -237,9 +295,11 @@ if (!$beneficiaire) {
         
         <div class="text-center mt-4">
             <button onclick="window.print()" class="btn btn-primary me-2">
-                <i class="bi bi-printer-fill me-2"></i>Imprimer la fiche
+                <i class="bi bi-printer-fill me-2"></i> Imprimer la fiche
             </button>
-            
+            <a href="accueil.php" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left-circle-fill me-2"></i>Retour à l'accueil
+            </a>
         </div>
     </div>
 
@@ -269,7 +329,7 @@ if (!$beneficiaire) {
             window.close();
             
             // Solution de repli si window.close() ne fonctionne pas
-            window.location.href = 'about:blank';
+            window.location.href = 'accueil.php';
             });
         }
     }, 1000);

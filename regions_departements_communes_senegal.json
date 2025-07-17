@@ -1,0 +1,256 @@
+{
+  "Dakar": {
+    "Dakar": [
+      "Plateau",
+      "Hann Bel-Air",
+      "Yoff",
+      "Parcelles Assainies"
+    ],
+    "Guédiawaye": [
+      "Wakhinane Nimzatt",
+      "Golf Sud",
+      "Sam Notaire"
+    ],
+    "Pikine": [
+      "Dalifort",
+      "Thiaroye",
+      "Keur Massar"
+    ],
+    "Rufisque": [
+      "Rufisque Est",
+      "Rufisque Ouest",
+      "Bargny"
+    ]
+  },
+  "Thiès": {
+    "Thiès": [
+      "Thiès Nord",
+      "Thiès Est",
+      "Thiès Ouest"
+    ],
+    "Tivaouane": [
+      "Tivaouane",
+      "Mékhé",
+      "Pambal"
+    ],
+    "Mbour": [
+      "Mbour",
+      "Saly",
+      "Ngaparou"
+    ]
+  },
+  "Saint-Louis": {
+    "Saint-Louis": [
+      "Saint-Louis Ville",
+      "Gandon",
+      "Ndiawdoune"
+    ],
+    "Dagana": [
+      "Dagana",
+      "Richard-Toll",
+      "Rosso"
+    ],
+    "Podor": [
+      "Podor",
+      "Guédé Chantier",
+      "Golléré"
+    ]
+  },
+  "Louga": {
+    "Louga": [
+      "Louga Ville",
+      "Coki",
+      "Keur Momar Sarr"
+    ],
+    "Kébémer": [
+      "Kébémer",
+      "Ndande",
+      "Darou Mousty"
+    ],
+    "Linguère": [
+      "Linguère",
+      "Barkédji",
+      "Yang-Yang"
+    ]
+  },
+  "Matam": {
+    "Matam": [
+      "Matam Ville",
+      "Aéré Lao",
+      "Ogo"
+    ],
+    "Kanel": [
+      "Kanel",
+      "Waoundé",
+      "Orkadiéré"
+    ],
+    "Ranérou": [
+      "Ranérou",
+      "Vélingara Ferlo",
+      "Boutilimit"
+    ]
+  },
+  "Ziguinchor": {
+    "Ziguinchor": [
+      "Ziguinchor Ville",
+      "Boutoute",
+      "Lyndiane"
+    ],
+    "Bignona": [
+      "Bignona",
+      "Thionck Essyl",
+      "Djinaky"
+    ],
+    "Oussouye": [
+      "Oussouye",
+      "Kabrousse",
+      "Elinkine"
+    ]
+  },
+  "Kaolack": {
+    "Kaolack": [
+      "Kaolack Ville",
+      "Ndiedieng",
+      "Thiaré"
+    ],
+    "Guinguinéo": [
+      "Guinguinéo",
+      "Gagnick",
+      "Nguélou"
+    ],
+    "Nioro du Rip": [
+      "Nioro",
+      "Porokhane",
+      "Keur Madiabel"
+    ]
+  },
+  "Kaffrine": {
+    "Kaffrine": [
+      "Kaffrine Ville",
+      "Kathiote",
+      "Diamagadio"
+    ],
+    "Koungheul": [
+      "Koungheul",
+      "Fass Thiékène",
+      "Lour Escale"
+    ],
+    "Malem Hodar": [
+      "Malem Hodar",
+      "Nguélou",
+      "Thiamène Pass"
+    ],
+    "Birkilane": [
+      "Birkilane",
+      "Sinthiou",
+      "Ganki"
+    ]
+  },
+  "Fatick": {
+    "Fatick": [
+      "Fatick Ville",
+      "Diaoulé",
+      "Tattaguine"
+    ],
+    "Foundiougne": [
+      "Foundiougne",
+      "Sokone",
+      "Djilor"
+    ],
+    "Gossas": [
+      "Gossas",
+      "Ouadiour",
+      "Colobane"
+    ]
+  },
+  "Diourbel": {
+    "Diourbel": [
+      "Diourbel Ville",
+      "Ndindy",
+      "Patouki"
+    ],
+    "Bambey": [
+      "Bambey",
+      "Ngogom",
+      "Lambaye"
+    ],
+    "Mbacké": [
+      "Mbacké",
+      "Touba",
+      "Taïf"
+    ]
+  },
+  "Tambacounda": {
+    "Tambacounda": [
+      "Tambacounda Ville",
+      "Missirah",
+      "Makacolibantang"
+    ],
+    "Bakel": [
+      "Bakel",
+      "Kidira",
+      "Moudéry"
+    ],
+    "Goudiry": [
+      "Goudiry",
+      "Kothiary",
+      "Koar"
+    ],
+    "Koumpentoum": [
+      "Koumpentoum",
+      "Malem Niani",
+      "Ndame"
+    ]
+  },
+  "Kédougou": {
+    "Kédougou": [
+      "Kédougou Ville",
+      "Fongolimbi",
+      "Bandafassi"
+    ],
+    "Salémata": [
+      "Salémata",
+      "Dakateli",
+      "Ethiolo"
+    ],
+    "Saraya": [
+      "Saraya",
+      "Sabodala",
+      "Khossanto"
+    ]
+  },
+  "Kolda": {
+    "Kolda": [
+      "Kolda Ville",
+      "Dioulacolon",
+      "Tankanto"
+    ],
+    "Vélingara": [
+      "Vélingara",
+      "Diaobé",
+      "Pakour"
+    ],
+    "Médina Yoro Foulah": [
+      "Médina Yoro Foulah",
+      "Niaming",
+      "Fafacourou"
+    ]
+  },
+  "Sédhiou": {
+    "Sédhiou": [
+      "Sédhiou Ville",
+      "Diannah Malary",
+      "Samboulaty"
+    ],
+    "Bounkiling": [
+      "Bounkiling",
+      "Diaroumé",
+      "Tankon"
+    ],
+    "Goudomp": [
+      "Goudomp",
+      "Mangacounda",
+      "Tanaff"
+    ]
+  }
+}

@@ -1,7 +1,9 @@
 <?php
+session_start();
 require_once 'db.php';
 
-$ip_pc = '10.100.226.124'; // IP locale
+//$ip_pc = 'carte.sencsu.sn'; // IP locale
+$ip_pc = 'localhost/Carte_PROD/'; // IP locale
 $message = '';
 
 function genererCodeImmatriculation() {
@@ -16,6 +18,8 @@ function genererCodeImmatriculation() {
     // Assemble le code
     return $lettre1 . $chiffres1 . $lettre2 . $chiffres2;
 }
+
+$dateEnreg = date('Y-m-d H:i:s'); // Date et heure actuelle
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     //$code = trim($_POST['code'] ?? '');
@@ -34,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $date_fin_cotisation = $_POST['date_fin_cotisation'] ?? '';
     $region = $_POST['region'] ?? '';
     $departement = $_POST['departement'] ?? '';
+    $commune = $_POST['commune'] ?? '';
     $groupe = $_POST['groupe'] ?? '';
     $type_adhesion = $_POST['type_adhesion'] ?? '';
     $type_cotisation = $_POST['type_cotisation'] ?? '';
@@ -41,18 +46,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
 
     $dateNaissance = !empty($date_naissance) ? date('Y-m-d', strtotime($date_naissance)) : null;
-    $dateCotisation = !empty($date_Cotisation) ? date('Y-m-d', strtotime($date_Cotisation)) : null;
+    $dateCotisation = !empty($date_cotisation) ? date('Y-m-d', strtotime($date_cotisation)) : null;
     $dateFinCotisation = !empty($date_fin_cotisation) ? date('Y-m-d', strtotime($date_fin_cotisation)) : null;
     
 
     if ($code && $nom && $prenom) {
-        $qr_url = "http://$ip_pc/carte_assur-e_cmu/detail.php?code=" . urlencode($code);
+        $qr_url = "http://$ip_pc/detail.php?code=" . urlencode($code);
         
         $stmt = $pdo->prepare("INSERT INTO beneficiaires (Code_Immatriculation, Nom, Prenom, 
         Date_Naissance, Sexe, Telephone, Adresse, Regime, Assureur, Type_Beneficiaire, 
-        Date_Cotisation, Date_Fin_Cotisation, qr_code_url, Region, Departement, Groupe, 
-        Type_Adhesion, Type_Cotisation,CNI) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        Date_Cotisation, Date_Fin_Cotisation, qr_code_url, Region, Departement, Commune, Groupe, 
+        Type_Adhesion, Type_Cotisation,CNI, Date_Enreg) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)");
         try {
             $stmt->execute([
                 $code,
@@ -70,10 +75,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $qr_url,
                 $region,
                 $departement,
+                $commune,
                 $groupe,
                 $type_adhesion,
                 $type_cotisation,
-                $cni
+                $cni,
+                $dateEnreg
+
 
 
 
