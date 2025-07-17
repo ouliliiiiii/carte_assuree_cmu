@@ -1,7 +1,9 @@
 <?php
+session_start();
 require_once 'db.php';
 
-$ip_pc = '10.100.226.203'; // IP locale
+//$ip_pc = 'carte.sencsu.sn'; // IP locale
+$ip_pc = 'localhost/Carte_PROD/'; // IP locale
 $message = '';
 
 function genererCodeImmatriculation() {
@@ -17,6 +19,8 @@ function genererCodeImmatriculation() {
     return $lettre1 . $chiffres1 . $lettre2 . $chiffres2;
 }
 
+$dateEnreg = date('Y-m-d H:i:s'); // Date et heure actuelle
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     //$code = trim($_POST['code'] ?? '');
     $code = genererCodeImmatriculation();
@@ -24,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $prenom = trim($_POST['prenom'] ?? '');
     $date_naissance = $_POST['date_naissance'] ?? '';
     $sexe = $_POST['sexe'] ?? '';
+    $cni = $_POST['cni'] ?? '';
     $telephone = $_POST['telephone'] ?? '';
     $adresse = $_POST['adresse'] ?? '';
     $regime = $_POST['regime'] ?? '';
@@ -31,27 +36,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $type_beneficiaire = $_POST['type_beneficiaire'] ?? '';
     $date_cotisation = $_POST['date_cotisation'] ?? '';
     $date_fin_cotisation = $_POST['date_fin_cotisation'] ?? '';
+    $region = $_POST['region'] ?? '';
+    $departement = $_POST['departement'] ?? '';
+    $commune = $_POST['commune'] ?? '';
+    $groupe = $_POST['groupe'] ?? '';
+    $type_adhesion = $_POST['type_adhesion'] ?? '';
+    $type_cotisation = $_POST['type_cotisation'] ?? '';
+   
+    
+
+    $dateNaissance = !empty($date_naissance) ? date('Y-m-d', strtotime($date_naissance)) : null;
+    $dateCotisation = !empty($date_cotisation) ? date('Y-m-d', strtotime($date_cotisation)) : null;
+    $dateFinCotisation = !empty($date_fin_cotisation) ? date('Y-m-d', strtotime($date_fin_cotisation)) : null;
     
 
     if ($code && $nom && $prenom) {
-        $qr_url = "http://$ip_pc/QR/detail.php?code=" . urlencode($code);
-        $stmt = $pdo->prepare("INSERT INTO beneficiaires (Code_Immatriculation, Nom, Prenom, Date_Naissance, Sexe, Telephone, Adresse, Regime, Assureur, Type_Beneficiaire, Date_Cotisation, Date_Fin_Cotisation, qr_code_url) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $qr_url = "http://$ip_pc/detail.php?code=" . urlencode($code);
+        
+        $stmt = $pdo->prepare("INSERT INTO beneficiaires (Code_Immatriculation, Nom, Prenom, 
+        Date_Naissance, Sexe, Telephone, Adresse, Regime, Assureur, Type_Beneficiaire, 
+        Date_Cotisation, Date_Fin_Cotisation, qr_code_url, Region, Departement, Commune, Groupe, 
+        Type_Adhesion, Type_Cotisation,CNI, Date_Enreg) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)");
         try {
             $stmt->execute([
                 $code,
                 $nom,
                 $prenom,
-                $date_naissance,
+                $dateNaissance,
                 $sexe,
                 $telephone,
                 $adresse,
                 $regime,
                 $assureur,
                 $type_beneficiaire,
-                $date_cotisation,
-                $date_fin_cotisation,
-                $qr_url
+                $dateCotisation,
+                $dateFinCotisation,
+                $qr_url,
+                $region,
+                $departement,
+                $commune,
+                $groupe,
+                $type_adhesion,
+                $type_cotisation,
+                $cni,
+                $dateEnreg
+
+
+
+
+
             ]);
             // Redirection avec code ajouté pour afficher le pop-up et QR Code
             header("Location: accueil.php?added=" . urlencode($code));

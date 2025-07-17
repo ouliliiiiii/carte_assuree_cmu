@@ -1,4 +1,9 @@
 <?php
+//$host = "localhost:3306";
+//$db = "qr";
+//$user = "root";
+//$pass = "Dsi@sencsu2025!!";
+
 $host = "localhost:3306";
 $db = "qr";
 $user = "root";

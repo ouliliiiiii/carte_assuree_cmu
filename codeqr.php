@@ -1,10 +1,12 @@
 <?php
-$ip_pc = '10.100.226.203'; // Remplace par l’IP locale de ton PC
+session_start();
+$ip_pc = 'carte.sencsu.sn'; // Remplace par l’IP locale de ton PC
+//$ip_pc = 'localhost/Carte_PROD/'; // IP locale
 $code = $_GET['code'] ?? '';
 $url = '';
 
 if ($code !== '') {
-    $url = "http://$ip_pc/QR/detail.php?code=" . urlencode($code);
+    $url = "http://$ip_pc/detail.php?code=" . urlencode($code);
 }
 ?>
 <!DOCTYPE html>
@@ -22,8 +24,17 @@ if ($code !== '') {
             z-index: 1000;
         }
     </style>
+     <!-- Lien vers le fichier CSS -->
+     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<header class="navbar ">
+            <div class="col-lg-4" >
+                 <img src="images/Logosen.png" style="width: 300px;">   
+            </div>
+             
+      </header>
 <div class="container text-center mt-5">
 
     <?php if ($url): ?>

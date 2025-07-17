@@ -1,0 +1,1 @@
+{"positions":{"Nom":"1","Prenom":"2","Date_Naissance":"3","Sexe":"4","Telephone":"5","Adresse":"6","Regime":"7","Assureur":"8","Type_Beneficiaire":"9","Date_Cotisation":"10","Region":"11","Departement":"12","Commune":"13","Groupe":"14","Type_Adhesion":"15","Type_Cotisation":"16","CNI":"17"}}
