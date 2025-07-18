@@ -17,16 +17,35 @@ if (isset($_GET['code'])) {
 
     // Détermination de l'état
     $etat = '';
+    $avertissement = '';
     $aujourdhui = new DateTime();
 
     if ($beneficiaire) {
         $dateDebut = new DateTime($beneficiaire['Date_Cotisation']);
         $dateFin = new DateTime($beneficiaire['Date_Fin_Cotisation']);
 
-        if ($aujourdhui >= $dateDebut && $aujourdhui <= $dateFin) {
+        if ($aujourdhui < $dateDebut) {
+            // Cotisation n'a pas encore commencé
+            $etat = '<span class="badge bg-warning text-dark rounded-pill px-3 py-2">À venir</span>';
+        } elseif ($aujourdhui >= $dateDebut && $aujourdhui <= $dateFin) {
+            // Cotisation en cours
             $etat = '<span class="badge bg-success rounded-pill px-3 py-2">Actif</span>';
         } else {
+            // Cotisation expirée
             $etat = '<span class="badge bg-danger rounded-pill px-3 py-2">Expiré</span>';
+        }
+
+        // Calcul du pourcentage de couverture
+        $totalDays = $dateFin->diff($dateDebut)->days ?: 1;
+        $daysPassed = $aujourdhui->diff($dateDebut)->invert ? $aujourdhui->diff($dateDebut)->days : 0;
+        $percentage = min(100, max(0, ($daysPassed / $totalDays) * 100));
+
+        if ($percentage >= 70 && $percentage < 100 && $aujourdhui <= $dateFin) {
+            $avertissement = '
+                <div class="alert alert-warning mt-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    Attention : la période de couverture tire à sa fin !
+                </div>';
         }
     }
 } else {
@@ -64,45 +83,97 @@ if (!$beneficiaire) {
         </div>
     </header>
 
+        
     <div class="container mb-5">
+        <!-- Section Actions -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-3 mb-3 mb-md-0">
+                        <h2 class="mb-0 section-title">Fiche de l'assuré</h2>
+                    </div>
+                    <div class="col-md-9 text-md-end">
+                        <div class="d-flex flex-wrap justify-content-md-end">      
+                            <button onclick="window.print()" class="btn btn-primary me-2">
+                                <i class="bi bi-printer-fill me-2"></i> Imprimer la fiche
+                            </button>
+                            <a href="accueil.php" class="btn btn-outline-secondary">
+                                <button class="btn btn-outline-secondary" style="border: none;">
+                                     <i class="bi bi-arrow-left-circle-fill me-2"></i>Retour à l'accueil
+                                </button>
+                                   
+                            </a>
+                            <?php if ($percentage >= 70 && $percentage < 100): ?>
+                                <span class="badge bg-warning text-dark blink mx-2 justify-content-center fs-6">
+                                    <i class="bi bi-exclamation-circle-fill me-1"></i> Mise à jour nécessaire
+                                </span>
+                            <?php endif; ?>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
-             <h2 class="section-title">Fiche de l'assuré</h2>
                     <div class="col-lg-12 mb-4 mb-sm-5">
                         <div class="card card-style1 border-0">
+                            <div class="card-header">
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <i class="bi bi-person-fill me-2"></i>Identité
+                                    </div>
+                                    <div class="col-lg-6 d-flex justify-content-end ">
+                                        <div class=" mb-4 mb-lg-0 ">
+                                            <?= $etat ?>
+                                         </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="card-body p-1-9 p-sm-2-3 p-md-6 p-lg-7">
-                                <div class="row align-items-center">
-                                    <div class="col-lg-4 mb-4 mb-lg-0">
-                                        <?php if (!empty($beneficiaire['photo'])): ?>
-                                                <img src="<?= htmlspecialchars($beneficiaire['photo']) ?>" alt="Photo">
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="col-lg-4 mb-4 mb-lg-0">
-                                       <h3 class="mb-0"><?= htmlspecialchars($beneficiaire['Prenom'] . ' ' .$beneficiaire['Nom']) ?></h3>
-                                    </div>
-                                    <div class="col-lg-4 mb-4 mb-lg-0">
-                                        <?= $etat ?>
-                                    </div>
                                 
+                                <div class="row align-items-center">
+                          
+                                    <div class="col-lg-3 mb-4 mb-lg-0 d-flex justify-content-center" >
+                                        <?php
+                                                $photo = !empty($beneficiaire['photo']) 
+                                                    ? htmlspecialchars($beneficiaire['photo']) 
+                                                    : 'images/avatar.png';
+                                        ?>
+                                         <img src="<?= $photo ?>" alt="Photo"  
+                                                 style="width: 180px; height: 180px; object-fit: cover; cursor: pointer;">
+                                    </div>
+                                    <div class="col-lg-9 mb-4 mb-lg-0" >
+                                        <div class="d-flex align-items-start">
+                                             <h3 class="mb-0">Matricule Numéro: <span class="info-value"><?= htmlspecialchars($beneficiaire['Code_Immatriculation']) ?></span></h3>  
+                                        </div>
+                                      
+                                        <div class="info-item mt-5">
+                                            <span class="info-label">Nom:</span>
+                                            <span class="info-value"><?= htmlspecialchars($beneficiaire['Nom']) ?></span>
+                                        </div>
+                                        
+                                        <div class="info-item">
+                                            <span class="info-label">Prénom:</span>
+                                            <span class="info-value"><?= htmlspecialchars($beneficiaire['Prenom']) ?></span>
+                                        </div>
+                                         <div class="info-item">
+                                            <span class="info-label">Sexe:</span>
+                                            <span class="info-value">
+                                                <?= $beneficiaire['Sexe'] == 'H' ? 'Masculin' : 'Féminin' ?>
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="info-item">
+                                            <span class="info-label">Téléphone:</span>
+                                            <span class="info-value"><?= htmlspecialchars($beneficiaire['Telephone']) ?></span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
         </div>
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <h2 class="section-title">Fiche de l'assuré</h2>
-                <h3 class="mb-0"><?= htmlspecialchars($beneficiaire['Prenom'] . ' ' .$beneficiaire['Nom']) ?></h3>
-            </div>
-            <div class="col-md-4">
-              <?php if (!empty($beneficiaire['photo'])): ?>
-                    <img src="<?= htmlspecialchars($beneficiaire['photo']) ?>" alt="Photo" width="100">
-            <?php endif; ?>
-            </div>
-            <div class="col-md-4 text-end">
-                <?= $etat ?>
-            </div>
-        </div>
-
         <div class="row">
             <!-- Colonne de gauche - Informations personnelles -->
             <div class="col-lg-5">
@@ -118,38 +189,15 @@ if (!$beneficiaire) {
                                     <span class="info-label">Date Enregistrement:</span>
                                     <span class="info-value"><?= formatDate($beneficiaire['Date_Enreg']) ?></span>
                             </div>
-                            <div class="info-item">
-                                <span class="info-label">Numéro d'immatriculation:</span>
-                                <span class="info-value"><?= htmlspecialchars($beneficiaire['Code_Immatriculation']) ?></span>
-                            </div>
-                            
-                            <div class="info-item">
-                                <span class="info-label">Nom:</span>
-                                <span class="info-value"><?= htmlspecialchars($beneficiaire['Nom']) ?></span>
-                            </div>
-                            
-                            <div class="info-item">
-                                <span class="info-label">Prénom:</span>
-                                <span class="info-value"><?= htmlspecialchars($beneficiaire['Prenom']) ?></span>
-                            </div>
                             
                             <div class="info-item">
                                 <span class="info-label">Date de naissance:</span>
                                 <span class="info-value"><?= formatDate($beneficiaire['Date_Naissance']) ?></span>
                             </div>
-                            
                             <div class="info-item">
-                                <span class="info-label">Sexe:</span>
-                                <span class="info-value">
-                                    <?= $beneficiaire['Sexe'] == 'H' ? 'Masculin' : 'Féminin' ?>
-                                </span>
+                                <span class="info-label">Lieu de naissance:</span>
+                                <span class="info-value"><?= formatDate($beneficiaire['lieu_naissance']) ?></span>
                             </div>
-                            
-                            <div class="info-item">
-                                <span class="info-label">Téléphone:</span>
-                                <span class="info-value"><?= htmlspecialchars($beneficiaire['Telephone']) ?></span>
-                            </div>
-                            
                             <div class="info-item">
                                 <span class="info-label">CNI:</span>
                                 <span class="info-value"><?= htmlspecialchars($beneficiaire['CNI']) ?></span>
@@ -176,6 +224,10 @@ if (!$beneficiaire) {
                         <div class="info-item">
                             <span class="info-label">Département:</span>
                             <span class="info-value"><?= htmlspecialchars($beneficiaire['Departement']) ?></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Commune:</span>
+                            <span class="info-value"><?= htmlspecialchars($beneficiaire['Commune']) ?></span>
                         </div>
                     </div>
                 </div>
@@ -271,13 +323,14 @@ if (!$beneficiaire) {
                                         $barClass = 'bg-secondary';
                                     }
                                     ?>
-                                    <div class="progress-bar <?= $barClass ?>" role="progressbar"
+                                   <div class="progress-bar <?= $barClass ?>" role="progressbar"
                                         style="width: <?= $percentage ?>%"
                                         aria-valuenow="<?= $percentage ?>" aria-valuemin="0" aria-valuemax="100">
                                     </div>
                             </div>
+                                <small class="text-muted">Progression de la période de couverture</small>
 
-                        <small class="text-muted">Progression de la période de couverture</small>
+                                <?= $avertissement ?>
                     </div>
                 </div>
                 
@@ -293,14 +346,7 @@ if (!$beneficiaire) {
             </div>
         </div>
         
-        <div class="text-center mt-4">
-            <button onclick="window.print()" class="btn btn-primary me-2">
-                <i class="bi bi-printer-fill me-2"></i> Imprimer la fiche
-            </button>
-            <a href="accueil.php" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left-circle-fill me-2"></i>Retour à l'accueil
-            </a>
-        </div>
+        
     </div>
 
     <div class="countdown" id="countdown">
@@ -312,6 +358,16 @@ if (!$beneficiaire) {
     <script>
     // Compte à rebours
     let timeLeft = 60;
+    <?php if ($percentage >= 70 && $percentage < 100): ?>
+        Swal.fire({
+            title: 'Alerte couverture',
+            html: 'La couverture de <b><?= htmlspecialchars($beneficiaire['Prenom'] . ' ' . $beneficiaire['Nom']) ?></b> approche de son terme.',
+            icon: 'warning',
+            timer: 8000,
+           confirmButtonText: 'OK'
+        });
+        <?php endif; ?>
+
     const countdown = setInterval(() => {
         timeLeft--;
         document.getElementById('time').textContent = timeLeft;

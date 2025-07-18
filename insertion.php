@@ -27,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nom = trim($_POST['nom'] ?? '');
     $prenom = trim($_POST['prenom'] ?? '');
     $date_naissance = $_POST['date_naissance'] ?? '';
+    $lieu_naissance = $_POST['lieu_naissance'] ?? '';
     $sexe = $_POST['sexe'] ?? '';
     $cni = $_POST['cni'] ?? '';
     $telephone = $_POST['telephone'] ?? '';
@@ -54,16 +55,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $qr_url = "http://$ip_pc/detail.php?code=" . urlencode($code);
         
         $stmt = $pdo->prepare("INSERT INTO beneficiaires (Code_Immatriculation, Nom, Prenom, 
-        Date_Naissance, Sexe, Telephone, Adresse, Regime, Assureur, Type_Beneficiaire, 
+        Date_Naissance,lieu_naissance, Sexe, Telephone, Adresse, Regime, Assureur, Type_Beneficiaire, 
         Date_Cotisation, Date_Fin_Cotisation, qr_code_url, Region, Departement, Commune, Groupe, 
         Type_Adhesion, Type_Cotisation,CNI, Date_Enreg) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)");
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?)");
         try {
             $stmt->execute([
                 $code,
                 $nom,
                 $prenom,
                 $dateNaissance,
+                $lieu_naissance,
                 $sexe,
                 $telephone,
                 $adresse,
@@ -81,10 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $type_cotisation,
                 $cni,
                 $dateEnreg
-
-
-
-
 
             ]);
             // Redirection avec code ajouté pour afficher le pop-up et QR Code

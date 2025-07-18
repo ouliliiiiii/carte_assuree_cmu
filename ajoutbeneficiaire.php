@@ -30,21 +30,50 @@
         </div>
     </header>
 
-    <div class="container mt-4">
+   <div class="container mb-5">
+        <!-- Section Actions -->
+            <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8 mb-3 mb-md-0">
+                                    <h2 class="mb-0 section-title"> <i class="bi bi-person-plus-fill me-2"></i>Ajouter un nouveau bénéficiaire</h2>
+                                </div>
+                                <div class="col-md-4 text-md-end">
+                                    <div class="d-flex flex-wrap justify-content-md-end">      
+                                        <a href="accueil.php" class="btn btn-outline-secondary">
+                                            <button class="btn btn-outline-secondary" style="border: none;">
+                                                <i class="bi bi-arrow-left-circle-fill me-2"></i>Retour à l'accueil
+                                            </button>
+                                        </a>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
         <div class="form-container animate__animated animate__fadeIn">
-            <h2 class="text-center mb-4">
-                <i class="bi bi-person-plus-fill me-2"></i>Ajouter un nouveau bénéficiaire
-            </h2>
-            
             <form method="post" action="insertion.php" id="beneficiaireForm">
                 <div class="row">
                     <!-- Colonne Informations Personnelles -->
                     <div class="col-lg-6">
+                        <div class="card-header">
+                            <i class="bi bi-person-lines-fill me-2"></i>Informations Personnelles
+                        </div>
                         <div class="form-section">
-                            <h4 class="section-title">
-                                <i class="bi bi-person-lines-fill me-2"></i>Informations Personnelles
-                            </h4>
-                            
+                            <div class="mb-3 text-center mt-3">
+                               <input type="file" name="photo" id="photo" accept="image/*" class="d-none" onchange="uploadPhoto(event)">
+    
+                                <img 
+                                    id="photoPreview"
+                                    src="<?= htmlspecialchars($beneficiaire['photo'] ?? 'images/avatar.png') ?>" 
+                                    data-id="<?= $beneficiaire['id'] ?>"
+                                    alt="Photo du bénéficiaire"
+                                    class="img-thumbnail"
+                                    style="width: 180px; height: 180px; object-fit: cover; cursor: pointer;"
+                                    onclick="document.getElementById('photo').click();" 
+                                    title="Ajouter photo">
+                            </div>
                             <div class="mb-3">
                                 <label for="nom" class="form-label required-field">Nom</label>
                                 <input type="text" name="nom" id="nom" class="form-control" required>
@@ -59,6 +88,10 @@
                                 <div class="col-md-6 mb-3">
                                     <label for="date_naissance" class="form-label">Date de naissance</label>
                                     <input type="date" name="date_naissance" id="date_naissance" class="form-control">
+                                </div>
+                                 <div class="mb-3">
+                                    <label for="lieu_naissance" class="form-label required-field">Lieu de naissance</label>
+                                    <input type="text" name="lieu_naissance" id="lieu_naissance" class="form-control" required>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="sexe" class="form-label">Sexe</label>
@@ -89,7 +122,7 @@
                                 <!-- Région -->
                                 <div class="col-md-6 mb-3">
                                     <label for="region" class="form-label">Région</label>
-                                    <select id="region" class="form-select" onchange="chargerDepartements()">
+                                    <select id="region" name="region" class="form-select" onchange="chargerDepartements()">
                                         <option value="">-- Choisissez une région --</option>
                                     </select>
                                 </div>
@@ -97,7 +130,7 @@
                                 <!-- Département -->
                                 <div class="col-md-6 mb-3">
                                     <label for="departement" class="form-label">Département</label>
-                                    <select id="departement" class="form-select" onchange="chargerCommunes()">
+                                    <select id="departement" name="departement" class="form-select" onchange="chargerCommunes()">
                                         <option value="">-- Choisissez un département --</option>
                                     </select>
                                 </div>
@@ -105,7 +138,7 @@
                                 <!-- Commune -->
                                 <div class="col-md-6 mb-3">
                                     <label for="commune" class="form-label">Commune</label>
-                                    <select id="commune" class="form-select">
+                                    <select id="commune" name="commune" class="form-select">
                                         <option value="">-- Choisissez une commune --</option>
                                     </select>
                                 </div>
@@ -117,11 +150,10 @@
                     
                     <!-- Colonne Informations d'Affiliation -->
                     <div class="col-lg-6">
+                        <div class="card-header">
+                            <i class="bi bi-person-lines-fill me-2"></i>Informations d'Affiliation
+                        </div>
                         <div class="form-section">
-                            <h4 class="section-title">
-                                <i class="bi bi-file-earmark-medical-fill me-2"></i>Informations d'Affiliation
-                            </h4>
-                            
                             <div class="mb-3">
                                 <label for="regime" class="form-label">Régime</label>
                                 <select name="regime" id="regime" class="form-select" onchange="mettreAJourTypes()">
@@ -170,6 +202,7 @@
                                     <select name="type_cotisation" id="type_cotisation" class="form-select">
                                         <option value="">-- Sélectionnez --</option>
                                         <option value="Annuelle">Annuelle</option>
+                                        <option value="Subventionne">Subventionné</option>
                                         <option value="Semestrielle">Semestrielle</option>
                                     </select>
                                 </div>
@@ -187,10 +220,7 @@
                     </div>
                 </div>
                 
-                <div class="d-flex justify-content-between mt-4">
-                    <a href="accueil.php" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left-circle-fill me-2"></i>Retour
-                    </a>
+                <div class="d-flex justify-content-end mt-4">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-save-fill me-2"></i>Enregistrer
                     </button>
@@ -203,25 +233,28 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    <script>
-    // Mise à jour dynamique des types de bénéficiaires
+   <script>
+    document.addEventListener('DOMContentLoaded', function () {
+    const regime = document.getElementById("regime");
+    const selectType = document.getElementById("type_beneficiaire");
+    const typeCotisation = document.getElementById('type_cotisation');
+    const dateCotisation = document.getElementById('date_cotisation');
+    const dateFinCotisation = document.getElementById('date_fin_cotisation');
+
+    // 🧠 Valeur PHP existante pour pré-sélection
+    const selectedType = "<?= isset($beneficiaire['Type_Beneficiaire']) ? htmlspecialchars($beneficiaire['Type_Beneficiaire']) : '' ?>";
+
     function mettreAJourTypes() {
-        const regime = document.getElementById("regime").value;
-        const selectType = document.getElementById("type_beneficiaire");
-
-        // Nettoie la liste actuelle
-        selectType.innerHTML = '<option value="">-- Sélectionnez un type --</option>';
-
+        const regimeValue = regime.value;
         let options = [];
 
-        if (regime === "Contributif") {
+        if (regimeValue === "Contributif") {
             options = [
                 { value: "CLASSIQUE", text: "CLASSIQUE" },
                 { value: "CMU-ELEVE", text: "CMU-ELEVE" },
                 { value: "CMU-DAARA", text: "CMU-DAARA" }
             ];
-        } else if (regime === "Non Contributif") {
+        } else if (regimeValue === "Non Contributif") {
             options = [
                 { value: "PLAN SESAME", text: "PLAN SESAME" },
                 { value: "FEMME ENCEINTE", text: "FEMME ENCEINTE" },
@@ -231,73 +264,75 @@
             ];
         }
 
-        // Ajoute dynamiquement les nouvelles options
+        selectType.innerHTML = '<option value="">-- Sélectionnez un type --</option>';
         options.forEach(option => {
             const opt = document.createElement("option");
             opt.value = option.value;
             opt.textContent = option.text;
             selectType.appendChild(opt);
         });
+
+        // Réapplique la valeur précédente si définie
+        if (selectedType) {
+            selectType.value = selectedType;
+        }
     }
 
-    // Calcul automatique de la date de fin de cotisation
-    document.addEventListener('DOMContentLoaded', function () {
-        const typeCotisation = document.getElementById('type_cotisation');
-        const dateCotisation = document.getElementById('date_cotisation');
-        const dateFinCotisation = document.getElementById('date_fin_cotisation');
+    regime.addEventListener('change', mettreAJourTypes);
+    mettreAJourTypes(); // appel initial
 
-        function updateDateFin() {
-            const type = typeCotisation.value;
-            const dateStr = dateCotisation.value;
+    // 📅 Mise à jour automatique de la date de fin de cotisation
+    function updateDateFin() {
+        const type = typeCotisation.value;
+        const dateStr = dateCotisation.value;
 
-            if (type && dateStr) {
-                const date = new Date(dateStr);
+        if (type && dateStr) {
+            const date = new Date(dateStr);
 
-                if (type === 'Annuelle') {
-                    date.setFullYear(date.getFullYear() + 1);
-                } else if (type === 'Semestrielle') {
-                    date.setMonth(date.getMonth() + 6);
-                }
-
-                // Format YYYY-MM-DD
-                const yyyy = date.getFullYear();
-                const mm = String(date.getMonth() + 1).padStart(2, '0');
-                const dd = String(date.getDate()).padStart(2, '0');
-
-                dateFinCotisation.value = `${yyyy}-${mm}-${dd}`;
-            } else {
-                dateFinCotisation.value = '';
+            if (type === 'Annuelle' || type === 'Subventionne') {
+                date.setFullYear(date.getFullYear() + 1);
+            } else if (type === 'Semestrielle') {
+                date.setMonth(date.getMonth() + 6);
             }
-        }
 
-        typeCotisation.addEventListener('change', updateDateFin);
-        dateCotisation.addEventListener('change', updateDateFin);
-        
-        // Validation du formulaire
-        document.getElementById('beneficiaireForm').addEventListener('submit', function(e) {
-            let isValid = true;
-            
-            // Vérification des champs obligatoires
-            document.querySelectorAll('[required]').forEach(field => {
-                if (!field.value.trim()) {
-                    isValid = false;
-                    field.classList.add('animate-required');
-                    setTimeout(() => field.classList.remove('animate-required'), 3000);
-                }
-            });
-            
-            if (!isValid) {
-                e.preventDefault();
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Champs obligatoires manquants',
-                    text: 'Veuillez remplir tous les champs obligatoires marqués d\'un astérisque (*)',
-                    confirmButtonColor: '#2c3e50'
-                });
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+
+            dateFinCotisation.value = `${yyyy}-${mm}-${dd}`;
+        } else {
+            dateFinCotisation.value = '';
+        }
+    }
+
+    typeCotisation.addEventListener('change', updateDateFin);
+    dateCotisation.addEventListener('change', updateDateFin);
+
+    // 🧾 Validation du formulaire
+    document.getElementById('beneficiaireForm').addEventListener('submit', function(e) {
+        let isValid = true;
+
+        document.querySelectorAll('[required]').forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
+            } else {
+                field.classList.remove('is-invalid');
             }
         });
+
+        if (!isValid) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Champs obligatoires manquants',
+                text: 'Veuillez remplir tous les champs obligatoires marqués d\'un astérisque (*)',
+                confirmButtonColor: '#2c3e50'
+            });
+        }
     });
-    </script>
+});
+</script>
     
     <!-- region departement commune -->
     <script>
@@ -366,6 +401,47 @@
             });
         }
         }
+
+
+function uploadPhoto(event) {
+    const fileInput = event.target;
+    const file = fileInput.files[0];
+    const preview = document.getElementById('photoPreview');
+    const status = document.getElementById('uploadStatus');
+    const id = preview.dataset.id;
+
+    if (!file || !id) return;
+
+    // Affiche l'image localement
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        preview.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    // Préparation AJAX
+    const formData = new FormData();
+    formData.append('photo', file);
+    formData.append('id', id);
+
+    fetch('upload_photo.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(result => {
+        console.log('Succès :', result);
+        status.classList.remove('d-none');
+        status.textContent = "Photo mise à jour.";
+        setTimeout(() => status.classList.add('d-none'), 3000);
+    })
+    .catch(error => {
+        console.error('Erreur :', error);
+        status.classList.remove('d-none');
+        status.classList.replace('text-success', 'text-danger');
+        status.textContent = "Échec du téléversement.";
+    });
+}
     </script>
 </body>
 </html>

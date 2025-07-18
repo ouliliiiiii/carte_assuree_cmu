@@ -243,9 +243,10 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
                             <?php
                             $sql = "SELECT *, 
                                     (CASE 
-                                        WHEN Date_Fin_Cotisation >= CURDATE() AND Date_Cotisation <= CURDATE() THEN 'Actif'
-                                        ELSE 'Expiré'
-                                    END) as Etat_Cotisation 
+                                        WHEN Date_Cotisation > CURDATE() THEN 'À venir'
+                                            WHEN Date_Cotisation <= CURDATE() AND Date_Fin_Cotisation >= CURDATE() THEN 'Actif'
+                                            ELSE 'Expiré'
+                                        END) as Etat_Cotisation 
                                     FROM beneficiaires WHERE 1=1";
                             
                             $params = [];
@@ -283,7 +284,27 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
                             $stmt->execute($params);
                             
                             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                $statusClass = $row['Etat_Cotisation'] == 'Actif' ? 'badge-active' : 'badge-expired';
+
+                                // Calcul de l'alerte badge
+                                    $dateDebut = new DateTime($row['Date_Cotisation']);
+                                    $dateFin = new DateTime($row['Date_Fin_Cotisation']);
+                                    $aujourdhui = new DateTime();
+
+                                    $totalDays = $dateFin->diff($dateDebut)->days ?: 1;
+                                    $daysPassed = $aujourdhui->diff($dateDebut)->invert ? $aujourdhui->diff($dateDebut)->days : 0;
+                                    $percentage = min(100, max(0, ($daysPassed / $totalDays) * 100));
+
+                                    $alerteBadge = '';
+                                    if ($percentage >= 70 && $percentage < 100 && $aujourdhui <= $dateFin) {
+                                        $alerteBadge = '<i class="bi bi-exclamation-triangle-fill text-warning blink"></i>';
+                                    }
+
+                                $statusClass = match ($row['Etat_Cotisation']) {
+                                    'Actif'    => 'badge-active',
+                                    'À venir'  => 'bg-warning',
+                                    'Expiré'   => 'badge-expired',
+                                    default    => 'badge-secondary' // au cas où
+                                };
                                 echo "<tr>
                                         <td><input type='checkbox' class='select-beneficiaire' name='beneficiaires[]' value='" . $row['id'] . "'></td>
                                         <td>{$row['Date_Enreg']}</td>
@@ -292,7 +313,7 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
                                         <td>{$row['Telephone']}</td>
                                         <!-- <td>{$row['Regime']}</td> -->
                                         <td>{$row['Type_Beneficiaire']}</td>
-                                        <td><span class='badge-status $statusClass'>{$row['Etat_Cotisation']}</span></td>
+                                        <td><span class='badge-status $statusClass'>{$row['Etat_Cotisation']} $alerteBadge</span></td>
                                         <td class='action-buttons'>
                                             <a href='detail_web.php?code={$row['Code_Immatriculation']}' class='btn btn-sm btn-success' title='Détails'>
                                                 <i class='bi bi-eye'></i>
@@ -360,8 +381,74 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
                         </select>
                 </div>
 
+               <div class="col-md-6 mb-3">
+                  
+                </div>
+                            
+                <div class="col-md-6 mb-3">
+                    <label for="type_adhesion" class="form-label">Type d'Adhésion</label>
+                        <select name="type_adhesion" id="type_adhesion" class="form-select">
+                            <option value="">-- Sélectionnez un type --</option>
+                            <option value="Individuelle">Individuelle</option>
+                            <option value="Familiale">Familiale</option>
+                            <option value="Groupe">Groupe</option>
+                            <option value="Adhesion Systematique">Adhésion Systématique</option>
+                        </select>
+                </div>
+                            
+                <div class="col-md-6 mb-3">
+                    <label for="assureur" class="form-label">Assureur</label>
+                        <select name="assureur" id="assureur" class="form-select">
+                            <option value="">-- Sélectionnez un assureur --</option>
+                            <option value="SENCSU">SENCSU</option>
+                            <option value="SOURA">SOURA</option>
+                            <option value="MSD">MSD</option>
+                        </select>
+                </div>
+                            
+                
+                 <div class=" col-md-6 mb-3">
+                    <label for="regime" class="form-label">Régime</label>
+                                <select name="regime" id="regimeModal" class="form-select" onchange="mettreAJourTypesModal()">
+                                    <option value="">-- Sélectionnez un régime --</option>
+                                    <option value="Contributif">Contributif</option>
+                                    <option value="Non Contributif">Non Contributif</option>
+                                </select>
+                </div>
+                <div class=" col-md-6 mb-3">
+                    <label for="type_beneficiaire" class="form-label">Type de Bénéficiaire</label>
+                                <select name="type_beneficiaire" id="type_beneficiaireModal" class="form-select">
+                                    <option value="">-- Sélectionnez un type --</option>
+                                </select>
+                </div>
+                            
+                <div class="col-md-6 mb-3">
+                    <label for="groupe" class="form-label">Groupe d'Appartenance</label>
+                            <input type="text" name="groupe" id="groupe" class="form-control">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="type_cotisation" class="form-label">Type de Cotisation</label>
+                        <select name="type_cotisation" id="type_cotisation" class="form-select">
+                            <option value="">-- Sélectionnez --</option>
+                            <option value="Annuelle">Annuelle</option>
+                            <option value="Subventionne">Subventionné</option>
+                            <option value="Semestrielle">Semestrielle</option>
+                        </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="date_cotisation" class="form-label">Date de Cotisation</label>
+                        <input type="date" name="date_cotisation" id="date_cotisation" class="form-control" >
+                </div>
+                           
+                <div class="col-md-6 mb-3">
+                    <label for="date_fin_cotisation" class="form-label">Date de Fin de Cotisation</label>
+                    <input type="date" name="date_fin_cotisation" id="date_fin_cotisation" class="form-control readonly-field" readonly>
+                </div>
+
                 <div class="col-md-12 ">
-                    <label for="photos" class="form-label">Téléversement de photos</label>
+                    <label for="photos" class="form-label">Photos</label>
                     <input type="file" name="photo[]" id="photo" class="form-control" accept="image/*" multiple>
                     <small class="text-muted">
                         Le nom de chaque photo doit correspondre à l'ID du bénéficiaire (ex: <code>15.jpg</code>, <code>42.png</code>)
@@ -402,7 +489,6 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
 </div>
 
     <!-- Scripts -->
-
     <!-- Dans votre section scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -410,91 +496,190 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
     <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <script>
 
-        
-    $(document).ready(function() {
-        // Initialisation DataTable
-        $('#beneficiairesTable').DataTable({
-            language: {
-                url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
-            },
-            responsive: true,
-            dom: '<"top"f>rt<"bottom"lip><"clear">',
-            pageLength: 10,
-            lengthMenu: [5, 10, 25, 50, 100]
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const typeCotisation = document.getElementById('type_cotisation');
+    const dateCotisation = document.getElementById('date_cotisation');
+    const dateFinCotisation = document.getElementById('date_fin_cotisation');
+
+    const regimeSelect = document.getElementById("regimeModal");
+    const typeSelect = document.getElementById("type_beneficiaireModal");
+
+    // Valeur injectée depuis PHP (mode édition si applicable)
+    const selectedType = "<?= isset($beneficiaire['type_beneficiaire']) ? htmlspecialchars($beneficiaire['type_beneficiaire']) : '' ?>";
+    const selectedRegime = "<?= isset($beneficiaire['regime']) ? htmlspecialchars($beneficiaire['regime']) : '' ?>";
+
+    function mettreAJourTypesModal() {   
+        const regimeValue = regimeSelect.value;
+        let options = [];
+
+        if (regimeValue === "Contributif") {
+            options = ["CLASSIQUE", "CMU-ELEVE", "CMU-DAARA"];
+        } else if (regimeValue === "Non Contributif") {
+            options = ["PLAN SESAME", "FEMME ENCEINTE", "ENFANT 0-5ANS", "MENAGE BSF", "TITULAIRE CEC"];
+        }
+
+        // Vider et ajouter les options
+        typeSelect.innerHTML = '<option value="">-- Sélectionnez un type --</option>';
+        options.forEach(value => {
+            const opt = document.createElement("option");
+            opt.value = value;
+            opt.textContent = value;
+            typeSelect.appendChild(opt);
         });
 
-         // Gestion de la suppression
-          
-                let deleteCode = '';
-                
-                // Lorsqu'on clique sur un bouton de suppression
-                $(document).on('click', '.delete-btn', function() {
-                    deleteCode = $(this).data('code');
-                });
-                
-                // Confirmation de suppression
-                $('#confirmDelete').click(function() {
-                    if (deleteCode) {
-                        window.location.href = 'supprimerbeneficiaire.php?code=' + deleteCode;
-                    }
-                });
-        
-        // Gestion des alertes
-        <?php if ($message): ?>
-        Swal.fire({
-            position: 'top-end',
-            icon: 'success',
-            title: 'Bénéficiaire ajouté avec succès',
-            showConfirmButton: false,
-            timer: 1500
-        });
-        <?php endif; ?>
-    });
-    
+        // Repositionner si déjà sélectionné
+        if (selectedType && regimeValue === selectedRegime) {
+            typeSelect.value = selectedType;
+        }
+    }
 
+    // Auto-remplir si déjà sélectionné
+    if (selectedRegime) {
+        regimeSelect.value = selectedRegime;
+        mettreAJourTypesModal();
+    }
+    regimeSelect.addEventListener('change', mettreAJourTypesModal);
 
-    
-    // Export avancé
-    document.getElementById('exportBtn').addEventListener('click', function() {
-        Swal.fire({
-            title: 'Options d\'export',
-            html: `
-                <div class="mb-3">
-                    <label class="form-label">Format</label>
-                    <select class="form-select" id="exportFormat">
-                        <option value="excel">Excel</option>
-                        <option value="csv">CSV</option>
-                        <option value="pdf">PDF</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Colonnes à inclure</label>
-                    <select class="form-select" id="exportColumns" multiple>
-                        <option value="code" selected>Code</option>
-                        <option value="nom" selected>Nom</option>
-                        <option value="telephone" selected>Téléphone</option>
-                        <option value="regime" selected>Régime</option>
-                        <option value="type" selected>Type</option>
-                        <option value="adresse">Adresse</option>
-                        <option value="date_cotisation">Date cotisation</option>
-                        <option value="date_fin">Date fin</option>
-                    </select>
-                </div>
-            `,
-            showCancelButton: true,
-            confirmButtonText: 'Exporter',
-            cancelButtonText: 'Annuler',
-            preConfirm: () => {
-                const format = document.getElementById('exportFormat').value;
-                const columns = Array.from(document.getElementById('exportColumns').selectedOptions)
-                                    .map(opt => opt.value);
-                window.location.href = `exporterliste.php?format=${format}&columns=${columns.join(',')}`;
+    // 📅 Mise à jour automatique de la date de fin de cotisation
+    function updateDateFin() {
+        const type = typeCotisation.value;
+        const dateStr = dateCotisation.value;
+
+        if (type && dateStr) {
+            const date = new Date(dateStr);
+
+            if (type === 'Annuelle' || type === 'Subventionne') {
+                date.setFullYear(date.getFullYear() + 1);
+            } else if (type === 'Semestrielle') {
+                date.setMonth(date.getMonth() + 6);
+            }
+
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+
+            dateFinCotisation.value = `${yyyy}-${mm}-${dd}`;
+        } else {
+            dateFinCotisation.value = '';
+        }
+    }
+
+    typeCotisation.addEventListener('change', updateDateFin);
+    dateCotisation.addEventListener('change', updateDateFin);
+
+    // 🧾 Validation du formulaire
+    document.getElementById('formModification').addEventListener('submit', function(e) {
+        let isValid = true;
+
+        document.querySelectorAll('[required]').forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
+            } else {
+                field.classList.remove('is-invalid');
             }
         });
-    });
 
+        if (!isValid) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Champs obligatoires manquants',
+                text: 'Veuillez remplir tous les champs obligatoires marqués d\'un astérisque (*)',
+                confirmButtonColor: '#2c3e50'
+            });
+        }
+    });
+});
+</script>
+
+
+
+    <script>
+   
+        $(document).ready(function() {
+            // Initialisation DataTable
+            $('#beneficiairesTable').DataTable({
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
+                },
+                responsive: true,
+                dom: '<"top"f>rt<"bottom"lip><"clear">',
+                pageLength: 10,
+                lengthMenu: [5, 10, 25, 50, 100]
+            });
+
+            // Gestion de la suppression
+            
+                    let deleteCode = '';
+                    
+                    // Lorsqu'on clique sur un bouton de suppression
+                    $(document).on('click', '.delete-btn', function() {
+                        deleteCode = $(this).data('code');
+                    });
+                    
+                    // Confirmation de suppression
+                    $('#confirmDelete').click(function() {
+                        if (deleteCode) {
+                            window.location.href = 'supprimerbeneficiaire.php?code=' + deleteCode;
+                        }
+                    });
+            
+            // Gestion des alertes
+            <?php if ($message): ?>
+            Swal.fire({
+                position: 'top-end',
+                icon: 'success',
+                title: 'Bénéficiaire ajouté avec succès',
+                showConfirmButton: false,
+                timer: 1500
+            });
+            <?php endif; ?>
+        });
+        
+        
+        // Export avancé
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            Swal.fire({
+                title: 'Options d\'export',
+                html: `
+                    <div class="mb-3">
+                        <label class="form-label">Format</label>
+                        <select class="form-select" id="exportFormat">
+                            <option value="excel">Excel</option>
+                            <option value="csv">CSV</option>
+                            <option value="pdf">PDF</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Colonnes à inclure</label>
+                        <select class="form-select" id="exportColumns" multiple>
+                            <option value="code" selected>Code</option>
+                            <option value="nom" selected>Nom</option>
+                            <option value="telephone" selected>Téléphone</option>
+                            <option value="regime" selected>Régime</option>
+                            <option value="type" selected>Type</option>
+                            <option value="adresse">Adresse</option>
+                            <option value="date_cotisation">Date cotisation</option>
+                            <option value="date_fin">Date fin</option>
+                        </select>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Exporter',
+                cancelButtonText: 'Annuler',
+                preConfirm: () => {
+                    const format = document.getElementById('exportFormat').value;
+                    const columns = Array.from(document.getElementById('exportColumns').selectedOptions)
+                                        .map(opt => opt.value);
+                    window.location.href = `exporterliste.php?format=${format}&columns=${columns.join(',')}`;
+                }
+            });
+        });
 
     </script>
 
@@ -608,6 +793,10 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
         }
         }
     </script>
+
+
+
+
 
     <?php if (isset($_SESSION['import_message'])): ?>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

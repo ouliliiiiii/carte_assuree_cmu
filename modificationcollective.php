@@ -5,23 +5,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ids'])) {
     $ids = json_decode($_POST['ids'], true);
     $modification_effectuee = false;
 
-    // === Mise à jour des champs texte ===
+    // Champs à mettre à jour (si remplis)
+    $champs_possible = [
+        'Region',
+        'Departement',
+        'Commune',
+        'type_adhesion',
+        'assureur',
+        'regime',
+        'type_beneficiaire',
+        'groupe',
+        'type_cotisation',
+        'date_cotisation',
+        'date_fin_cotisation'
+    ];
+
     $fields = [];
     $params = [];
 
-    if (!empty($_POST['Region'])) {
-        $fields[] = "Region = ?";
-        $params[] = $_POST['Region'];
-    }
-    if (!empty($_POST['Departement'])) {
-        $fields[] = "Departement = ?";
-        $params[] = $_POST['Departement'];
-    }
-    if (!empty($_POST['Commune'])) {
-        $fields[] = "Commune = ?";
-        $params[] = $_POST['Commune'];
+    foreach ($champs_possible as $champ) {
+        if (isset($_POST[$champ]) && $_POST[$champ] !== '') {
+            $fields[] = "$champ = ?";
+            $params[] = $_POST[$champ];
+        }
     }
 
+    // S'il y a des champs à mettre à jour et des IDs
     if (!empty($fields) && !empty($ids)) {
         $sql = "UPDATE beneficiaires SET " . implode(', ', $fields) .
                " WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")";
@@ -35,10 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ids'])) {
 
     // === Upload des photos ===
     if (!empty($_FILES['photo']['name'][0])) {
-        $uploadDir = __DIR__ . '/uploads/photos/'; // chemin absolu
-        $webPath = 'uploads/photos/'; // pour enregistrer dans la BDD et afficher dans <img>
+        $uploadDir = __DIR__ . '/uploads/photos/';
+        $webPath = 'uploads/photos/';
 
-        // Créer le dossier s'il n'existe pas
         if (!is_dir($uploadDir)) {
             if (!mkdir($uploadDir, 0755, true)) {
                 die("Erreur : Impossible de créer le dossier $uploadDir");
@@ -50,16 +58,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ids'])) {
             $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
             $filename = pathinfo($originalName, PATHINFO_FILENAME);
 
-            // Vérifie l'extension
             if (!in_array($extension, ['jpg', 'jpeg', 'png', 'webp'])) {
                 continue;
             }
 
-            // Extraire l'ID du nom de fichier
             preg_match('/\d+/', $filename, $matches);
             $idFromFile = isset($matches[0]) ? (int)$matches[0] : null;
 
-            // Vérifie que l'ID est dans la sélection
             if ($idFromFile && in_array($idFromFile, $ids)) {
                 $newFileName = $idFromFile . '.' . $extension;
                 $fullPath = $uploadDir . $newFileName;
@@ -68,16 +73,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ids'])) {
                 if (move_uploaded_file($tmpName, $fullPath)) {
                     $stmtPhoto = $pdo->prepare("UPDATE beneficiaires SET photo = ? WHERE id = ?");
                     $stmtPhoto->execute([$relativePath, $idFromFile]);
-
-                   
                     $modification_effectuee = true;
-                    
                 }
             }
         }
     }
 
-    // === Redirection finale
+    // Redirection
     header("Location: accueil.php?modification=" . ($modification_effectuee ? "success" : "none"));
     exit;
 }
+?>
