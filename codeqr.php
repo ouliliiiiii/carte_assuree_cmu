@@ -1,12 +1,12 @@
 <?php
 session_start();
-$ip_pc = 'carte.sencsu.sn'; // Remplace par l’IP locale de ton PC
+$ip_pc = 'localhost/Carte_PROD/'; // Remplace par l’IP locale de ton PC
 //$ip_pc = 'localhost/Carte_PROD/'; // IP locale
 $code = $_GET['code'] ?? '';
 $url = '';
 
 if ($code !== '') {
-    $url = "http://$ip_pc/detail.php?code=" . urlencode($code);
+    $url = "http://$ip_pc/detail_web.php?code=" . urlencode($code);
 }
 ?>
 <!DOCTYPE html>
