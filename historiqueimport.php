@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once 'header.php';
 require_once 'db.php';
 
 // Récupération des paramètres de filtre depuis le formulaire
@@ -39,31 +39,53 @@ $historique = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="new_style.css" />
+    
+    <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            .action-buttons {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+    </style>
 </head>
 <body>
 
-    <?php include 'header.php'; ?>
+   
 
     <div class="container mb-5">
-        <!-- Section Actions -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-md-3 mb-3 mb-md-0">
-                        <h5 class="mb-0">Historique des importations</h5>
-                    </div>
-                    <div class="col-md-9 text-md-end">
-                        <div class="d-flex flex-wrap justify-content-md-end">
-                            <a href="accueil.php" class="btn btn-success  me-2 mb-2">
-                                <button class="btn btn-success "> Accueil</button> 
-                            </a>
-                            <a href="importerListe.php" class="btn btn-primary me-2 mb-2">
-                                <i class="bi bi-download"></i> Importer
-                            </a>
-                            <a href="Historiqueimport.php" class="btn btn-primary mb-2">Historique des importations</a>
-                        </div>
-                    </div>
-                </div>
+        <!-- En-tête de page amélioré -->
+        <div class="page-header">
+            <div>
+                <h1 class="h3 mb-1">Historique des importations</h1>
+                <p class="text-muted mb-0">Consultation et gestion des imports précédents</p>
+            </div>
+            <div class="action-buttons">
+                <!-- Bouton de retour bien placé -->
+                <a href="accueil.php" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left me-1"></i> Retour au registre
+                </a>
+                <a href="importerListe.php" class="btn btn-primary">
+                    <i class="bi bi-download me-1"></i> Nouvel import
+                </a>
             </div>
         </div>
 
@@ -74,24 +96,25 @@ $historique = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
             <div class="card-body">
                 <form id="filtreForm" method="get" class="row g-3 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label for="search_nom" class="form-label">Nom du fichier</label>
                         <input type="text" class="form-control" id="search_nom" name="search_nom"
                                value="<?= htmlspecialchars($filtrefichier) ?>" placeholder="Rechercher..." />
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label for="search_date" class="form-label">Date d'importation</label>
                         <input type="date" class="form-control" id="search_date" name="search_date"
                                value="<?= htmlspecialchars($filtreDate) ?>" />
                     </div>
-
-                    <div class="col-12 text-end">
-                        <button type="submit" class="btn btn-primary me-2">
-                            <i class="bi bi-funnel-fill"></i> Appliquer
-                        </button>
-                        <a href="<?= basename($_SERVER['PHP_SELF']) ?>" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser
-                        </a>
+                    <div class="col-md-4">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-funnel-fill me-1"></i> Appliquer
+                            </button>
+                            <a href="<?= basename($_SERVER['PHP_SELF']) ?>" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Réinitialiser
+                            </a>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -100,10 +123,14 @@ $historique = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <!-- Tableau des historiques -->
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-people-fill"></i> Historique des importations</span>
-                <span class="badge bg-primary"><?= count($historique) ?> Importations</span>
+                <div>
+                    <i class="bi bi-clock-history me-2"></i>
+                    <span>Historique des importations</span>
+                </div>
+                <span class="badge bg-primary"><?= count($historique) ?> Importation(s)</span>
             </div>
             <div class="card-body">
+                <?php if (!empty($historique)): ?>
                 <div class="table-responsive">
                     <table id="importTable" class="table table-hover">
                         <thead class="table-light">
@@ -111,42 +138,50 @@ $historique = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <th>Nom Fichier</th>
                                 <th>Date d'import</th>
                                 <th>Lignes importées</th>
-                                <th>Action</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($historique as $h) : ?>
                                 <tr>
                                     <td><?= htmlspecialchars($h['nom_fichier']) ?></td>
-                                    <td><?= htmlspecialchars($h['date_import']) ?></td>
-                                    <td><?= htmlspecialchars($h['nb_lignes_importees']) ?></td>
+                                    <td><?= date('d/m/Y H:i', strtotime($h['date_import'])) ?></td>
                                     <td>
-                                        <a href="detail_import.php?id=<?= (int)$h['id'] ?>" class="btn btn-sm btn-success" title='Détails'>
-                                            <i class='bi bi-eye'></i>
-                                        </a>
-                                        <a href='#' 
-                                                class='btn btn-sm btn-danger delete-btn' 
-                                                data-bs-toggle='modal'
-                                                data-bs-target='#confirmModal'
-                                                data-id="<?= (int)$h['id'] ?>"
-                                                title="Supprimer">
+                                        <span class="badge bg-success rounded-pill">
+                                            <?= htmlspecialchars($h['nb_lignes_importees']) ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="detail_import.php?id=<?= (int)$h['id'] ?>" class="btn btn-outline-primary" title='Détails'>
+                                                <i class='bi bi-eye'></i>
+                                            </a>
+                                            <a href='#' class='btn btn-outline-danger delete-btn' 
+                                               data-bs-toggle='modal' data-bs-target='#confirmModal'
+                                               data-id="<?= (int)$h['id'] ?>" title="Supprimer">
                                                 <i class='bi bi-trash'></i>
-                                        </a>
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
-                            <?php if (empty($historique)): ?>
-                                <tr><td colspan="4" class="text-center">Aucun résultat trouvé</td></tr>
-                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
+                <?php else: ?>
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-4 text-muted"></i>
+                    <p class="text-muted mt-3">Aucune importation trouvée</p>
+                    <a href="importerListe.php" class="btn btn-primary mt-2">
+                        <i class="bi bi-download me-1"></i> Effectuer une importation
+                    </a>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 
-
-        <!-- Modal de confirmation de suppression -->
+    <!-- Modal de confirmation de suppression -->
     <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -158,7 +193,7 @@ $historique = $stmt->fetchAll(PDO::FETCH_ASSOC);
                    Êtes-vous sûr de vouloir supprimer cette importation ? Cette action est définitive et entraînera également la suppression de toutes les données associées.
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary " data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
                     <button type="button" class="btn btn-danger" id="confirmDelete">Supprimer</button>
                 </div>
             </div>
@@ -181,17 +216,20 @@ $historique = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 responsive: true,
                 dom: '<"top"f>rt<"bottom"lip><"clear">',
                 pageLength: 10,
-                lengthMenu: [5, 10, 25, 50, 100]
+                lengthMenu: [5, 10, 25, 50, 100],
+                order: [[1, 'desc']] // Tri par date décroissante par défaut
             });
 
-            // Gestion suppression (si tu as modal de confirmation)
-            let deleteCode = '';
-            $(document).on('click', '.delete-btn', function() {
-                deleteCode = $(this).data('id');
+            // Gestion suppression
+            let deleteId = '';
+            $(document).on('click', '.delete-btn', function(e) {
+                e.preventDefault();
+                deleteId = $(this).data('id');
             });
+            
             $('#confirmDelete').click(function() {
-                if (deleteCode) {
-                    window.location.href = 'supprimerimportation.php?code=' + deleteCode;
+                if (deleteId) {
+                    window.location.href = 'supprimerimportation.php?id=' + deleteId;
                 }
             });
         });

@@ -1,9 +1,10 @@
 <?php
-session_start();
+require_once 'header.php';
 require_once 'db.php';
 require 'vendor/autoload.php';
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 function genererCodeImmatriculation($pdo) {
     do {
@@ -36,26 +37,73 @@ function calculerDateFinCotisation($dateDebut, $type) {
     return $date->format('Y-m-d');
 }
 
-function normaliserDateExcel($val) {
-    if ($val === null || $val === '') return false;
-
-    // Si PhpSpreadsheet a détecté une vraie date et l'a convertie en DateTime
-    if ($val instanceof DateTime) {
-        return $val->format('Y-m-d');
+function convertirDateExcel($dateValue, $format = 'Y-m-d') {
+    if (empty($dateValue)) {
+        return null;
     }
-
-    // Si PhpSpreadsheet a converti une date en string US (m/d/Y)
-    $formats = ['d/m/Y', 'j/n/Y', 'm/d/Y', 'n/j/Y'];
-    foreach ($formats as $format) {
-        $date = DateTime::createFromFormat($format, $val);
-        $erreurs = DateTime::getLastErrors();
-
-        if ($date && $erreurs['warning_count'] == 0 && $erreurs['error_count'] == 0) {
+    
+    // Si c'est déjà un objet DateTime
+    if ($dateValue instanceof DateTime) {
+        return $dateValue->format($format);
+    }
+    
+    // Si c'est un nombre (format Excel)
+    if (is_numeric($dateValue)) {
+        try {
+            $date = ExcelDate::excelToDateTimeObject($dateValue);
+            return $date->format($format);
+        } catch (Exception $e) {
+            error_log("Erreur conversion date Excel: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    // Si c'est une chaîne de caractères
+    $dateString = trim($dateValue);
+    
+    // Essayer différents formats de date
+    $formats = [
+        'd/m/Y', 'd/m/y', 'd-m-Y', 'd-m-y',
+        'm/d/Y', 'm/d/y', 'm-d-Y', 'm-d-y',
+        'Y-m-d', 'Y/m/d'
+    ];
+    
+    foreach ($formats as $dateFormat) {
+        $date = DateTime::createFromFormat($dateFormat, $dateString);
+        if ($date && $date->format($dateFormat) === $dateString) {
             return $date->format('Y-m-d');
         }
     }
+    
+    // Dernier essai avec la conversion automatique
+    try {
+        $date = new DateTime($dateString);
+        return $date->format('Y-m-d');
+    } catch (Exception $e) {
+        error_log("Erreur conversion date: " . $e->getMessage() . " - Valeur: " . $dateString);
+        return null;
+    }
+}
 
-    return false;
+function validerNomFichierPhoto($nomFichier) {
+    if (empty($nomFichier)) {
+        return null;
+    }
+    
+    $nomFichier = trim($nomFichier);
+    
+    // Vérifier les extensions autorisées
+    $extensionsAutorisees = ['png', 'jpg', 'jpeg', 'gif', 'bmp'];
+    $extension = strtolower(pathinfo($nomFichier, PATHINFO_EXTENSION));
+    
+    if (!in_array($extension, $extensionsAutorisees)) {
+        return false;
+    }
+    
+    // Nettoyer le nom du fichier (enlever les chemins éventuels)
+    $nomFichier = basename($nomFichier);
+    
+    return $nomFichier;
 }
 
 // Vérification du fichier importé
@@ -93,13 +141,17 @@ try {
     $listeErreurs = [];
 
     foreach ($rows as $i => $row) {
-        if ($i === 0) continue;
+        if ($i === 0) continue; // sauter l'en-tête
         $ligne = $i + 1;
 
         $donnee = [];
         foreach ($positions as $champ => $index) {
             $val = $row[(int)$index - 1] ?? null;
-            $donnee[$champ] = trim($val);
+            if ($val !== null) {
+                $donnee[$champ] = is_string($val) ? trim($val) : $val;
+            } else {
+                $donnee[$champ] = null;
+            }
         }
 
         // SEXE
@@ -115,9 +167,46 @@ try {
             }
         }
 
+        // REGIME
+        $regime = strtoupper(trim($donnee['Regime'] ?? ''));
+        if (!in_array($regime, ['CONTRIBUTIF', 'NON CONTRIBUTIF'])) {
+            $listeErreurs[] = "Erreur ligne $ligne : Régime invalide ('{$donnee['Regime']}'). Valeurs autorisées : Contributif ou Non Contributif.";
+            continue;
+        }
+        $donnee['Regime'] = ucwords(strtolower($regime));
+
+        // TYPE_BENEFICIAIRE
+        $typeBenef = strtoupper(trim($donnee['Type_Beneficiaire'] ?? ''));
+        if ($regime === 'CONTRIBUTIF') {
+            $typesAcceptes = ['CLASSIQUE', 'ELEVE', 'DAARA'];
+        } else {
+            $typesAcceptes = ['PLAN SESAME', 'FEMME ENCEINTE', 'ENFANT 0-5ANS', 'MENAGE BSF', 'TITULAIRE CEC'];
+        }
+        if (!in_array($typeBenef, $typesAcceptes)) {
+            $listeErreurs[] = "Erreur ligne $ligne : Type de Bénéficiaire invalide ('{$donnee['Type_Beneficiaire']}') pour le régime $regime.";
+            continue;
+        }
+        $donnee['Type_Beneficiaire'] = ucwords(strtolower($typeBenef));
+
+        // ASSUREUR
+        $assureur = strtoupper(trim($donnee['Assureur'] ?? ''));
+        if (!in_array($assureur, ['SENCSU', 'SOURA', 'MSD'])) {
+            $listeErreurs[] = "Erreur ligne $ligne : Assureur invalide ('{$donnee['Assureur']}'). Valeurs autorisées : SENCSU, SOURA, MSD.";
+            continue;
+        }
+        $donnee['Assureur'] = strtoupper($assureur);
+
+        // TYPE_ADHESION
+        $typeAdhesion = ucwords(strtolower(trim($donnee['Type_Adhesion'] ?? '')));
+        if (!in_array($typeAdhesion, ['Individuelle', 'Familiale', 'Groupe', 'Adhésion Systématique'])) {
+            $listeErreurs[] = "Erreur ligne $ligne : Type d'adhésion invalide ('{$donnee['Type_Adhesion']}').";
+            continue;
+        }
+        $donnee['Type_Adhesion'] = $typeAdhesion;
+
         // DATE DE NAISSANCE
         if (!empty($donnee['Date_Naissance'])) {
-            $dateNorm = normaliserDateExcel($donnee['Date_Naissance']);
+            $dateNorm = convertirDateExcel($donnee['Date_Naissance']);
             if (!$dateNorm) {
                 $listeErreurs[] = "Erreur à la ligne $ligne : La date de naissance '{$donnee['Date_Naissance']}' est invalide. Format attendu : jj/mm/aaaa";
                 continue;
@@ -127,7 +216,7 @@ try {
 
         // DATE DE COTISATION
         if (!empty($donnee['Date_Cotisation'])) {
-            $dateNorm = normaliserDateExcel($donnee['Date_Cotisation']);
+            $dateNorm = convertirDateExcel($donnee['Date_Cotisation']);
             if (!$dateNorm) {
                 $listeErreurs[] = "Erreur à la ligne $ligne : La date de cotisation '{$donnee['Date_Cotisation']}' est invalide. Format attendu : jj/mm/aaaa";
                 continue;
@@ -135,28 +224,54 @@ try {
             $donnee['Date_Cotisation'] = $dateNorm;
         }
 
-        // DATE FIN DE COTISATION
-        $dateFin = calculerDateFinCotisation($donnee['Date_Cotisation'] ?? null, $donnee['Type_Cotisation'] ?? null);
-        if (!$dateFin) {
-            $listeErreurs[] = "Erreur à la ligne $ligne : Type de cotisation '{$donnee['Type_Cotisation']}' invalide ou date invalide.";
+        // TYPE_COTISATION (vérification avant calcul date fin)
+        $typeCotisation = ucwords(strtolower(trim($donnee['Type_Cotisation'] ?? '')));
+        if (!in_array($typeCotisation, ['Annuelle', 'Semestrielle'])) {
+            $listeErreurs[] = "Erreur à la ligne $ligne : Type de cotisation '{$donnee['Type_Cotisation']}' invalide. Valeurs autorisées : Annuelle, Semestrielle.";
             continue;
         }
-        $donnee['Date_Fin_Cotisation'] = $dateFin;
+        $donnee['Type_Cotisation'] = $typeCotisation;
 
-        if (!empty($donnee['CNI'])) {
-                $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM beneficiaires WHERE CNI = ?");
-                $stmtCheck->execute([$donnee['CNI']]);
-                if ($stmtCheck->fetchColumn() > 0) {
-                    $listeErreurs[] = "Ligne $ligne : Un bénéficiaire avec le CNI '{$donnee['CNI']}' existe déjà.";
-                    continue;
-                }
+        // DATE FIN DE COTISATION
+        if (!empty($donnee['Date_Cotisation'])) {
+            $dateFin = calculerDateFinCotisation($donnee['Date_Cotisation'], $donnee['Type_Cotisation']);
+            if (!$dateFin) {
+                $listeErreurs[] = "Erreur à la ligne $ligne : Type de cotisation '{$donnee['Type_Cotisation']}' invalide ou date invalide.";
+                continue;
             }
+            $donnee['Date_Fin_Cotisation'] = $dateFin;
+        } else {
+            $listeErreurs[] = "Erreur à la ligne $ligne : Date de cotisation manquante.";
+            continue;
+        }
+
+        // PHOTO - Validation du nom de fichier
+        if (isset($donnee['Photo']) && !empty($donnee['Photo'])) {
+            $nomPhoto = validerNomFichierPhoto($donnee['Photo']);
+            if ($nomPhoto === false) {
+                $listeErreurs[] = "Erreur à la ligne $ligne : Format de fichier photo invalide ('{$donnee['Photo']}'). Formats acceptés: png, jpg, jpeg, gif, bmp.";
+                continue;
+            }
+            $donnee['Photo'] = $nomPhoto;
+        } else {
+            $donnee['Photo'] = null;
+        }
+
+        // CNI unique
+        if (!empty($donnee['CNI'])) {
+            $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM beneficiaires WHERE CNI = ?");
+            $stmtCheck->execute([$donnee['CNI']]);
+            if ($stmtCheck->fetchColumn() > 0) {
+                $listeErreurs[] = "Ligne $ligne : Un bénéficiaire avec le CNI '{$donnee['CNI']}' existe déjà.";
+                continue;
+            }
+        }
 
         $donnee['code_immatriculation'] = genererCodeImmatriculation($pdo);
         $donnees_importees[] = $donnee;
     }
 
-    // ⚠️ AFFICHAGE DES ERREURS AVANT INSERTION
+    // Si erreurs -> retour
     if (!empty($listeErreurs)) {
         $_SESSION['import_status'] = 'error';
         $_SESSION['import_message'] = implode("<br>", $listeErreurs);
@@ -164,34 +279,30 @@ try {
         exit;
     }
 
-    //$utilisateur = $_SESSION['username'] ?? 'invité';
+    // Historique
     $stmtHist = $pdo->prepare("INSERT INTO historique_import 
         (nom_fichier, date_import, nb_lignes_importees, nb_erreurs, message) 
         VALUES (?, NOW(), ?, ?, ?)");
-
-    $stmtHist->execute([
-        $_FILES['fichier_import']['name'],
-        0, 0, ''
-    ]);
+    $stmtHist->execute([$_FILES['fichier_import']['name'], 0, 0, '']);
     $import_id = $pdo->lastInsertId();
-    // INSERTION EN BASE
-    $ip_pc = 'localhost/Carte_PROD/';
-    $imported = 0;
-    $errors = [];
+
+    // Insertion en base
     $stmt = $pdo->prepare("INSERT INTO beneficiaires (
         Code_Immatriculation, Nom, Prenom, Date_Naissance, Sexe, Telephone, Adresse, Regime,
-        Assureur, Type_Beneficiaire, Date_Cotisation, Region, Departement, Commune,
-        Groupe, Type_Adhesion, Type_Cotisation, CNI, Date_Fin_Cotisation, qr_code_url, Date_Enreg, import_id
+        Assureur, Type_Beneficiaire, Date_Cotisation, Region, Departement, Groupe,
+        Type_Adhesion, Type_Cotisation, CNI, Date_Fin_Cotisation, Photo, qr_code_url, Date_Enreg, import_id
     ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )");
 
     $dateEnreg = date('Y-m-d H:i:s');
+    $imported = 0;
+    $errors = [];
 
     foreach ($donnees_importees as $i => $row) {
         try {
             $code = $row['code_immatriculation'];
-            $qr = "http://$ip_pc/detail.php?code=" . urlencode($code);
+            $qr = "http://localhost/Carte_PROD/detail.php?code=" . urlencode($code);
 
             $stmt->execute([
                 $code,
@@ -207,12 +318,12 @@ try {
                 $row['Date_Cotisation'] ?? null,
                 $row['Region'] ?? null,
                 $row['Departement'] ?? null,
-                $row['Commune'] ?? null,
                 $row['Groupe'] ?? null,
                 $row['Type_Adhesion'] ?? null,
                 $row['Type_Cotisation'] ?? null,
                 $row['CNI'] ?? null,
                 $row['Date_Fin_Cotisation'] ?? null,
+                $row['Photo'] ?? null,
                 $qr,
                 $dateEnreg,
                 $import_id
@@ -223,10 +334,10 @@ try {
         }
     }
 
-    // MESSAGE FINAL
+    // Mise à jour historique
     $message = "$imported lignes importées.";
     if ($errors) {
-        $message .= "<br>Erreurs d’insertion :<br>" . implode("<br>", array_slice($errors, 0, 10));
+        $message .= "<br>Erreurs d'insertion :<br>" . implode("<br>", array_slice($errors, 0, 10));
         if (count($errors) > 10) {
             $message .= "<br>... et " . (count($errors) - 10) . " autres erreurs.";
         }
@@ -241,10 +352,8 @@ try {
     header('Location: importerliste.php');
     exit;
 
-}
- catch (Exception $e) 
- {
-    $_SESSION['import_message'] = "Erreur lors du traitement du fichier : " . $e->getMessage();
+} catch (Exception $e) {
+    $_SESSION['import_message'] = "Erreur lors du traitement : " . $e->getMessage();
     $_SESSION['import_status'] = 'error';
     header('Location: importerliste.php');
     exit;

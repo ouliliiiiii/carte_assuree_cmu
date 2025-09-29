@@ -1,6 +1,7 @@
 <?php
-session_start();
+require_once 'header.php';
 require_once 'db.php';
+//require_once 'db.php';
 require 'vendor/autoload.php';
 
     use PhpOffice\PhpSpreadsheet\Spreadsheet;

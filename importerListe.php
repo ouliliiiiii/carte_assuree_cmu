@@ -1,6 +1,6 @@
 <?php
-// importerliste.php
-session_start();
+require_once 'header.php';
+require_once 'db.php';
 
 // On récupère les positions de colonnes si elles ont été enregistrées
 $positions = $_SESSION['colonnes_positions'] ?? [];
@@ -15,13 +15,11 @@ $positions = $_SESSION['colonnes_positions'] ?? [];
             Swal.fire({
                 icon: 'success',
                 title: 'Importation réussie',
-                text: rawMessage,
+                html: rawMessage,
                 confirmButtonColor: '#3085d6',
             });
         } else if (status === 'error') {
-            // Si le message est une chaîne avec des sauts de ligne => afficher liste
-            const lignes = rawMessage.split('\n').filter(l => l.trim() !== '');
-
+            const lignes = rawMessage.split('<br>').filter(l => l.trim() !== '');
             Swal.fire({
                 icon: 'error',
                 title: 'Erreurs lors de l\'importation',
@@ -32,8 +30,10 @@ $positions = $_SESSION['colonnes_positions'] ?? [];
         }
     });
 </script>
-<?php endif; ?>
-
+<?php 
+unset($_SESSION['import_message'], $_SESSION['import_status']);
+endif; 
+?>
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -65,11 +65,7 @@ $positions = $_SESSION['colonnes_positions'] ?? [];
     </style>
 </head>
 <body>
-<?php include 'header.php'; ?>
-
 <div class="container mb-5">
-
-
     <!-- Section parametre -->
     <div class="card mb-4">
         <div class="card-body">
@@ -90,6 +86,7 @@ $positions = $_SESSION['colonnes_positions'] ?? [];
     <div class="alert alert-info">
         <i class="bi bi-info-circle me-2"></i>
         Assurez-vous que votre fichier respecte le format requis avant l'importation.
+        <br><strong>Note :</strong> La colonne Photo doit contenir le nom du fichier (ex: 1.png)
     </div>
 
     <!-- Formulaire import -->
@@ -129,8 +126,8 @@ $positions = $_SESSION['colonnes_positions'] ?? [];
                     $champs = [
                         "Nom", "Prenom", "Date_Naissance", "Sexe", "Telephone", "Adresse", "Regime", 
                         "Assureur", "Type_Beneficiaire", "Date_Cotisation", 
-                        "Region", "Departement", "Commune", "Groupe", 
-                        "Type_Adhesion", "Type_Cotisation", "CNI"
+                        "Region", "Departement", "Groupe", 
+                        "Type_Adhesion", "Type_Cotisation", "CNI", "Photo"
                     ];
                     foreach ($champs as $champ): ?>
                         <div class="col-md-3 mb-3">
@@ -167,7 +164,6 @@ $positions = $_SESSION['colonnes_positions'] ?? [];
             document.body.style.overflow = 'hidden';
         }
     }
-
     function closePopup(id) {
         const popup = document.getElementById(id);
         if (popup) {
@@ -175,72 +171,51 @@ $positions = $_SESSION['colonnes_positions'] ?? [];
             document.body.style.overflow = 'auto';
         }
     }
-
-  function submitParamForm(form) {
-    const formData = new FormData(form);
-    const positions = {};
-
-    formData.forEach((value, key) => {
-        const match = key.match(/^positions\[(.+)\]$/);
-        if (match) {
-            const champ = match[1];
-            const num = parseInt(value);
-            if (!isNaN(num)) {
-                positions[champ] = num;
+    function submitParamForm(form) {
+        const formData = new FormData(form);
+        const positions = {};
+        formData.forEach((value, key) => {
+            const match = key.match(/^positions\[(.+)\]$/);
+            if (match) {
+                const champ = match[1];
+                const num = parseInt(value);
+                if (!isNaN(num)) {
+                    positions[champ] = num;
+                }
             }
-        }
-    });
-
-   console.log("JSON envoyé :", JSON.stringify({ positions: positions }));
-// 👈 DEBUG
-
-    fetch('sauvegarde_colonnes.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ positions: positions })
-    })
-    .then(res => res.text())
-    .then(text => {
-        console.log("Réponse reçue :", text); // 👈 DEBUG
-
-        if (text.trim() === 'OK') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Succès',
-                text: 'Paramètres enregistrés avec succès.',
-                confirmButtonColor: '#3085d6',
-            }).then(() => {
-                closePopup('paramPopup');
-            });
-        } else {
+        });
+        fetch('sauvegarde_colonnes.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ positions: positions })
+        })
+        .then(res => res.text())
+        .then(text => {
+            if (text.trim() === 'OK') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Succès',
+                    text: 'Paramètres enregistrés avec succès.',
+                    confirmButtonColor: '#3085d6',
+                }).then(() => closePopup('paramPopup'));
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erreur',
+                    text: 'Erreur : ' + text,
+                    confirmButtonColor: '#d33',
+                });
+            }
+        })
+        .catch(err => {
             Swal.fire({
                 icon: 'error',
-                title: 'Erreur',
-                text: 'Erreur : ' + text,
+                title: 'Erreur réseau',
+                text: err.toString(),
                 confirmButtonColor: '#d33',
             });
-        }
-    })
-    .catch(err => {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erreur réseau',
-            text: err.toString(),
-            confirmButtonColor: '#d33',
         });
-    });
-}
-
-
-    // Fermeture des popups au clic en dehors
-    ['paramPopup'].forEach(id => {
-        const popup = document.getElementById(id);
-        if (popup) {
-            popup.addEventListener('click', function(e) {
-                if (e.target === this) closePopup(id);
-            });
-        }
-    });
+    }
 </script>
 </body>
 </html>

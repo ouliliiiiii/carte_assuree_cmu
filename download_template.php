@@ -1,5 +1,6 @@
 <?php
-// download_template.php
+require_once 'header.php';
+require_once 'db.php';
 require 'vendor/autoload.php';
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;

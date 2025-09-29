@@ -1,4 +1,5 @@
 <?php
+require_once 'header.php';
 require_once 'db.php';
 
 $dateEnreg = date('Y-m-d H:i:s'); // Date et heure actuelle
@@ -73,7 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare($sql);
             $stmt->execute($params);
 
-            header("Location: accueil.php?updated=" . urlencode($code));
+           
+
+            header("Location: detail_web.php?code=" . urlencode($code));
             exit;
         } catch (PDOException $e) {
             die("Erreur lors de la mise à jour : " . $e->getMessage());

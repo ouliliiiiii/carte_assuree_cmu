@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once 'header.php';
 require_once 'db.php';
 
 $code = $_GET['code'] ?? '';
@@ -39,11 +39,7 @@ function formatDateForInput($dateStr) {
  
 </head>
 <body>
-        <?php 
-            //On appelle le header de la page
-            include 'header.php'; 
-        ?>
-
+       
     <div class="container mb-5">
 <!-- Section Actions -->
         <div class="card mb-4">
@@ -359,7 +355,10 @@ function formatDateForInput($dateStr) {
 
             if (type && dateStr) {
                 const date = new Date(dateStr);
-
+                if (isNaN(date.getTime())) {
+                    dateFinCotisation.value = '';
+                    return;
+                }
                 if (type === 'Annuelle' || type === 'Subventionne') {
                     date.setFullYear(date.getFullYear() + 1);
                 } else if (type === 'Semestrielle') {

@@ -1,138 +1,60 @@
 <?php
+// login.php - Ne pas inclure le header normal
 session_start();
+
+// Si déjà connecté, rediriger
+if (isset($_SESSION['user'])) {
+    header("Location: index.php");
+    exit;
+}
 require_once 'db.php';
 
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
-    $password = $_POST['password'] ?? '';
+    $username = trim($_POST['username'] ?? '');
+    $password = trim($_POST['password'] ?? '');
 
-    $stmt = $pdo->prepare('SELECT * FROM users WHERE username = ?');
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
     $stmt->execute([$username]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($user && hash('sha256', $password) === $user['password']) {
-        $_SESSION['user'] = $username;
-        header('Location: accueil.php');
+    if ($user && password_verify($password, $user['password'])) {
+        // Connexion réussie
+        $_SESSION['user'] = $user['username'];
+        header("Location: index.php");
         exit;
     } else {
         $message = "Nom d'utilisateur ou mot de passe incorrect.";
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <title>Connexion</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            background-color: #f8f9fa;
-            color: #333;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .main-content {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 40px 20px;
-        }
-
-        form {
-            background: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-            width: 100%;
-            max-width: 400px;
-        }
-
-        form h2 {
-            margin-bottom: 20px;
-            text-align: center;
-            color: #a8e063;
-        }
-
-        input[type="text"], input[type="password"] {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-        }
-
-        input[type="submit"] {
-            background: #2575fc;
-            color: white;
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            width: 100%;
-        }
-
-        input[type="submit"]:hover {
-            background: #1e60d3;
-        }
-
-        .error {
-            color: red;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        header.header {
-            background: #fff;
-            padding: 10px 0;
-            border-bottom: 1px solid #ddd;
-        }
-
-        header .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        header .logo {
-            max-height: 50px;
-        }
-
-        .text-muted {
-            font-size: 14px;
-            color: #555;
-        }
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
+<body class="bg-light d-flex align-items-center justify-content-center vh-100">
+    <div class="card shadow p-4" style="width: 350px;">
+        <h3 class="text-center mb-4">Connexion</h3>
 
-    <?php include 'header.php'; ?>
+        <?php if ($message): ?>
+            <div class="alert alert-danger"><?= htmlspecialchars($message) ?></div>
+        <?php endif; ?>
 
-    <div class="main-content">
-        <form method="post">
-            <h2>Connexion</h2>
-            <?php if ($message): ?>
-                <p class="error"><?= htmlspecialchars($message) ?></p>
-            <?php endif; ?>
-            <input type="text" name="username" placeholder="Nom d'utilisateur" required>
-            <input type="password" name="password" placeholder="Mot de passe" required>
-            <input type="submit" value="Se connecter">
+        <form method="post" action="login.php">
+            <div class="mb-3">
+                <label class="form-label">Nom d'utilisateur</label>
+                <input type="text" name="username" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Mot de passe</label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Se connecter</button>
         </form>
     </div>
-
 </body>
 </html>

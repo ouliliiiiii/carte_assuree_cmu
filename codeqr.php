@@ -1,12 +1,17 @@
 <?php
-session_start();
-$ip_pc = 'localhost/Carte_PROD/'; // Remplace par l’IP locale de ton PC
+require_once 'header.php';
+require_once 'db.php';
+
+$ip_pc = '10.100.226.172/Carte_PROD/'; // Remplace par l’IP locale de ton PC
 //$ip_pc = 'localhost/Carte_PROD/'; // IP locale
 $code = $_GET['code'] ?? '';
 $url = '';
 
-if ($code !== '') {
-    $url = "http://$ip_pc/detail_web.php?code=" . urlencode($code);
+if ($code !== '') 
+{
+    $url = "http://$ip_pc/detail.php?code=" . urlencode($code);
+    // Dans accueil.php ou une autre page
+    echo "<script>window.open('$url', '_blank');</script>";
 }
 ?>
 <!DOCTYPE html>
@@ -29,25 +34,37 @@ if ($code !== '') {
 </head>
 <body>
 
-<header class="navbar ">
-            <div class="col-lg-4" >
-                 <img src="images/Logosen.png" style="width: 300px;">   
+       
+        <div class="container "> 
+            <!-- Section Actions -->
+            <div class="card ">
+                <div class="card-body " >
+
+                    <?php if ($url): ?>
+                        <div class="row ">
+                            <div class="col-lg-12 d-flex justify-content-center">
+                                <h1>QR Code pour le code : <strong><?= htmlspecialchars($code) ?></strong></h1>
+                            </div>
+                            <div class="col-lg-12 d-flex justify-content-center">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?data=<?= urlencode($url) ?>&size=300x300" alt="QR Code" class="my-3" />
+                            </div>
+                            <div class="col-lg-12 d-flex justify-content-center">
+                                 <p>En scannant ce QR code, vous accéderez à :</p>
+                                 <a href="<?= htmlspecialchars($url) ?>" target="_blank"><?= htmlspecialchars($url) ?></a> <br>
+                            </div>
+                             <div class="col-lg-12 d-flex justify-content-end">
+                                 <a href="accueil.php" class="btn btn-secondary">Retour à l'accueil</a>
+                            </div>
+                            <div class="col-lg-12 d-flex justify-content-center">
+                                <?php else: ?>
+                                    <div class="alert alert-danger">Aucun code fourni !</div>
+                                    <a href="accueil.php" class="btn btn-secondary">Retour à l'accueil</a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        
+                </div>
             </div>
-             
-      </header>
-<div class="container text-center mt-5">
-
-    <?php if ($url): ?>
-        <h1>QR Code pour le code : <strong><?= htmlspecialchars($code) ?></strong></h1>
-        <img src="https://api.qrserver.com/v1/create-qr-code/?data=<?= urlencode($url) ?>&size=300x300" alt="QR Code" class="my-3" />
-        <p>En scannant ce QR code, vous accéderez à :</p>
-        <a href="<?= htmlspecialchars($url) ?>" target="_blank"><?= htmlspecialchars($url) ?></a> 
-        <a href="accueil.php" class="btn btn-secondary retour-accueil">Retour à l'accueil</a>
-    <?php else: ?>
-        <div class="alert alert-danger">Aucun code fourni !</div>
-        <a href="accueil.php" class="btn btn-secondary">Retour à l'accueil</a>
-    <?php endif; ?>
-
-</div>
+        </div>
 </body>
 </html>

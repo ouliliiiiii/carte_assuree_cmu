@@ -1,3 +1,8 @@
+<?php
+require_once 'header.php';
+require_once 'db.php';
+?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -17,18 +22,7 @@
     </style>
 </head>
 <body>
-    <header class="header">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <img src="images/Logosen.png" class="logo" alt="Logo SENCSU">
-                </div>
-                <div class="col-md-6 text-end">
-                    <span class="text-muted"><?= date('d/m/Y') ?></span>
-                </div>
-            </div>
-        </div>
-    </header>
+
 
    <div class="container mb-5">
         <!-- Section Actions -->

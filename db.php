@@ -1,13 +1,13 @@
 <?php
-//$host = "localhost:3306";
-//$db = "qr";
-//$user = "root";
-//$pass = "Dsi@sencsu2025!!";
+/*$host = "localhost:3306";
+$db = "carteassure_db";
+$user = "root";
+$pass = "Dsi@sencsu2025!!"; */
 
 $host = "localhost:3306";
-$db = "qr";
+$db = "code_qr";
 $user = "root";
-$pass = "0000";
+$pass = "";
 
 try 
 {

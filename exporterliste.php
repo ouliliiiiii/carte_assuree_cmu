@@ -1,5 +1,4 @@
-<?php
-session_start();
+<?php 
 require_once 'db.php';
 require_once 'vendor/autoload.php';
 
@@ -7,14 +6,15 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xls;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-// Récupérer les paramètres de filtre (version simplifiée avec opérateur null coalescing)
+// Récupérer les paramètres de filtre
 $filtreType = $_GET['type_beneficiaire'] ?? '';
 $filtreRegime = $_GET['regime'] ?? '';
 $filtreNom = $_GET['search_nom'] ?? '';
 $filtreCode = $_GET['search_code'] ?? '';
-$groupe = $_GET['groupe'] ?? '';
+$filtreGroupe = $_GET['groupe'] ?? '';
 $filtreDateDebut = $_GET['date_debut'] ?? '';
 $filtreDateFin = $_GET['date_fin'] ?? '';
+$filtreEtat = $_GET['etat'] ?? '';
 
 // Construire la requête SQL
 $query = "SELECT 
@@ -39,22 +39,72 @@ $query = "SELECT
             Groupe, 
             Type_Adhesion, 
             Type_Cotisation,  
-            CNI
+            CNI,
+            photo,
+            (CASE 
+                WHEN Date_Cotisation > CURDATE() THEN 'À venir'
+                WHEN Date_Cotisation <= CURDATE() AND Date_Fin_Cotisation >= CURDATE() THEN 'Actif'
+                ELSE 'Expiré'
+            END) as Etat_Cotisation
           FROM beneficiaires
           WHERE 1=1";
 
-// Ajouter les conditions de filtre
 $params = [];
 if (!empty($filtreType)) {
     $query .= " AND Type_Beneficiaire = ?";
     $params[] = $filtreType;
 }
-// ... (le reste des conditions de filtre reste identique)
+if (!empty($filtreRegime)) {
+    $query .= " AND Regime = ?";
+    $params[] = $filtreRegime;
+}
+if (!empty($filtreNom)) {
+    $query .= " AND (Nom LIKE ? OR Prenom LIKE ?)";
+    $params[] = "%$filtreNom%";
+    $params[] = "%$filtreNom%";
+}
+if (!empty($filtreCode)) {
+    $query .= " AND Code_Immatriculation LIKE ?";
+    $params[] = "%$filtreCode%";
+}
+if (!empty($filtreGroupe)) {
+    $query .= " AND Groupe = ?";
+    $params[] = $filtreGroupe;
+}
+if (!empty($filtreDateDebut)) {
+    $query .= " AND Date_Enreg >= ?";
+    $params[] = $filtreDateDebut;
+}
+if (!empty($filtreDateFin)) {
+    $query .= " AND Date_Enreg <= ?";
+    $params[] = $filtreDateFin;
+}
 
 // Exécution de la requête
 $stmt = $pdo->prepare($query);
 $stmt->execute($params);
 $beneficiaires = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Filtrage par état
+if (!empty($filtreEtat)) {
+    if ($filtreEtat === 'Alerte') {
+        $beneficiaires = array_filter($beneficiaires, function($beneficiaire) {
+            $dateDebut = new DateTime($beneficiaire['Date_Cotisation']);
+            $dateFin = new DateTime($beneficiaire['Date_Fin_Cotisation']);
+            $aujourdhui = new DateTime();
+            
+            $totalDays = $dateFin->diff($dateDebut)->days ?: 1;
+            $daysPassed = $aujourdhui->diff($dateDebut)->invert ? $aujourdhui->diff($dateDebut)->days : 0;
+            $percentage = min(100, max(0, ($daysPassed / $totalDays) * 100));
+            
+            return ($percentage >= 70 && $percentage < 100 && $aujourdhui <= $dateFin);
+        });
+    } else {
+        $beneficiaires = array_filter($beneficiaires, function($beneficiaire) use ($filtreEtat) {
+            return $beneficiaire['Etat_Cotisation'] === $filtreEtat;
+        });
+    }
+}
 
 if (count($beneficiaires) === 0) {
     die("Aucun bénéficiaire à exporter avec les critères sélectionnés");
@@ -68,56 +118,89 @@ $sheet = $spreadsheet->getActiveSheet();
 $entetes = [
     'ID', 'Date Enregistrement', 'Code Immatriculation', 'Nom', 'Prénom',
     'Date Naissance', 'Sexe', 'Téléphone', 'Adresse', 'Régime', 'Assureur',
-    'Type Bénéficiaire', 'Date Cotisation', 'Date Fin Cotisation', 'QR Code URL',
-    'Region', 'Departement','Commune', 'Groupe', 'Type_Adhesion', 'Type_Cotisation', 'CNI'
+    'Type Bénéficiaire', 'Date Cotisation', 'Date Fin Cotisation', 'État Cotisation', 'QR Code URL',
+    'Region', 'Departement','Commune', 'Groupe', 'Type_Adhesion', 'Type_Cotisation', 'CNI',  'Photo'
 ];
 $sheet->fromArray($entetes, NULL, 'A1');
 
-// Remplissage des données
+// Remplissage des données + collecte des photos
 $row = 2;
+$photos = [];
 foreach ($beneficiaires as $beneficiaire) {
-    // Formatage des dates pour Excel (convertir en timestamp Excel)
-    $datesToFormat = ['Date_Enreg', 'Date_Naissance', 'Date_Cotisation', 'Date_Fin_Cotisation'];
-    foreach ($datesToFormat as $dateField) {
-        if (!empty($beneficiaire[$dateField])) {
-            $beneficiaire[$dateField] = \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel(
-                strtotime($beneficiaire[$dateField])
-            );
-        }
+    $data = [
+        $beneficiaire['id'],
+        $beneficiaire['Date_Enreg'],
+        $beneficiaire['Code_Immatriculation'],
+        $beneficiaire['Nom'],
+        $beneficiaire['Prenom'],
+        $beneficiaire['Date_Naissance'],
+        $beneficiaire['Sexe'],
+        $beneficiaire['Telephone'],
+        $beneficiaire['Adresse'],
+        $beneficiaire['Regime'],
+        $beneficiaire['Assureur'],
+        $beneficiaire['Type_Beneficiaire'],
+        $beneficiaire['Date_Cotisation'],
+        $beneficiaire['Date_Fin_Cotisation'],
+        $beneficiaire['Etat_Cotisation'],
+        $beneficiaire['qr_code_url'],
+        $beneficiaire['Region'],
+        $beneficiaire['Departement'],
+        $beneficiaire['Commune'],
+        $beneficiaire['Groupe'],
+        $beneficiaire['Type_Adhesion'],
+        $beneficiaire['Type_Cotisation'],
+        $beneficiaire['CNI'],
+        $beneficiaire['photo']
+    ];
+
+    $sheet->fromArray($data, NULL, 'A' . $row);
+
+    // Récupération du chemin photo
+    $photoPath = $beneficiaire['photo'];
+    if (!empty($beneficiaire['photo']) && file_exists($photoPath)) {
+        // renommer la photo avec ID et Code_Immatriculation
+        $ext = pathinfo($photoPath, PATHINFO_EXTENSION);
+        $newName = $beneficiaire['id'] . '_' . $beneficiaire['Code_Immatriculation'] . '.' . $ext;
+        $photos[$photoPath] = $newName;
     }
-    
-    // Formatage de la CNI comme texte pour éviter la notation scientifique
-    if (!empty($beneficiaire['CNI'])) {
-        $beneficiaire['CNI'] = " " . $beneficiaire['CNI']; // Ajoute une apostrophe pour forcer le format texte
-    }
-    
-    $sheet->fromArray($beneficiaire, NULL, 'A' . $row);
+
     $row++;
 }
 
-// Appliquer les formats aux colonnes
-$sheet->getStyle('B2:B'.($row-1))->getNumberFormat()->setFormatCode('dd/mm/yyyy'); // Date Enreg
-$sheet->getStyle('F2:F'.($row-1))->getNumberFormat()->setFormatCode('dd/mm/yyyy'); // Date Naissance
-$sheet->getStyle('M2:M'.($row-1))->getNumberFormat()->setFormatCode('dd/mm/yyyy'); // Date Cotisation
-$sheet->getStyle('N2:N'.($row-1))->getNumberFormat()->setFormatCode('dd/mm/yyyy'); // Date Fin Cotisation
-
-// Format de la CNI comme texte
-$sheet->getStyle('U2:U'.($row-1))->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
-
-// Format du téléphone
-$sheet->getStyle('H2:H'.($row-1))->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
-
 // Ajustement automatique des colonnes
-foreach (range('A', 'U') as $col) {
+foreach (range('A', 'V') as $col) {
     $sheet->getColumnDimension($col)->setAutoSize(true);
 }
 
-// En-têtes HTTP pour le téléchargement
-header('Content-Type: application/vnd.ms-excel');
-header('Content-Disposition: attachment;filename="beneficiaires_export_' . date('Y-m-d_H-i') . '.xls"');
-header('Cache-Control: max-age=0');
-
+// Sauvegarder l’Excel dans un fichier temporaire
+$tmpExcel = tempnam(sys_get_temp_dir(), 'export_') . '.xls';
 $writer = new Xls($spreadsheet);
-$writer->save('php://output');
+$writer->save($tmpExcel);
+
+// Créer l’archive ZIP
+$zipFile = 'beneficiaires_export_' . date('Y-m-d_H-i') . '.zip';
+$zip = new ZipArchive();
+if ($zip->open($zipFile, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
+    // Ajouter l’Excel
+    $zip->addFile($tmpExcel, 'beneficiaires.xls');
+
+    // Ajouter les photos
+    foreach ($photos as $path => $newName) {
+        $zip->addFile($path, $newName);
+    }
+
+    $zip->close();
+}
+
+// Envoyer le ZIP
+header('Content-Type: application/zip');
+header('Content-Disposition: attachment; filename="' . basename($zipFile) . '"');
+header('Content-Length: ' . filesize($zipFile));
+readfile($zipFile);
+
+// Nettoyage
+unlink($tmpExcel);
+unlink($zipFile);
 exit;
 ?>

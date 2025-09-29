@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once 'header.php';
 require_once 'db.php';
 
 // Gestion des messages
@@ -21,6 +21,8 @@ $filtreCode = $_GET['search_code'] ?? '';
 $filtreGroupe = $_GET['groupe'] ?? '';
 $filtreDateDebut = $_GET['date_debut'] ?? '';
 $filtreDateFin = $_GET['date_fin'] ?? '';
+$filtreEtat = $_GET['etat'] ?? '';
+
 
 ?>
 <?php if (isset($_GET['modification'])): ?>
@@ -67,7 +69,7 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
     
     <?php 
         //On appelle le header de la page
-        include 'header.php'; 
+       // include 'header.php'; 
     ?>
 
     <div class="container mb-5">
@@ -98,22 +100,22 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
                            
 
                             <?php
-                                // Construire l'URL d'export avec les filtres actuels
-                                $exportUrl = 'exporterliste.php';
-                                $queryParams = [];
-                                if (!empty($filtreType)) $queryParams['type_beneficiaire'] = $filtreType;
-                                if (!empty($filtreRegime)) $queryParams['regime'] = $filtreRegime;
-                                if (!empty($filtreNom)) $queryParams['search_nom'] = $filtreNom;
-                                if (!empty($filtreCode)) $queryParams['search_code'] = $filtreCode;
-                                if (!empty($groupe)) $queryParams['groupe'] = $groupe;
-                                if (!empty($filtreDateDebut)) $queryParams['date_debut'] = $filtreDateDebut;
-                                if (!empty($filtreDateFin)) $queryParams['date_fin'] = $filtreDateFin;
-                                
+                            // Construire l'URL d'export avec les filtres actuels
+                            $exportUrl = 'exporterliste.php';
+                            $queryParams = [];
+                            if (!empty($filtreType)) $queryParams['type_beneficiaire'] = $filtreType;
+                            if (!empty($filtreRegime)) $queryParams['regime'] = $filtreRegime;
+                            if (!empty($filtreNom)) $queryParams['search_nom'] = $filtreNom;
+                            if (!empty($filtreCode)) $queryParams['search_code'] = $filtreCode;
+                            if (!empty($filtreGroupe)) $queryParams['groupe'] = $filtreGroupe; // Correction ici
+                            if (!empty($filtreDateDebut)) $queryParams['date_debut'] = $filtreDateDebut;
+                            if (!empty($filtreDateFin)) $queryParams['date_fin'] = $filtreDateFin;
+                            if (!empty($filtreEtat)) $queryParams['etat'] = $filtreEtat; 
 
-                                // Ajouter seulement si des filtres sont actifs
-                                if (!empty($queryParams)) {
-                                    $exportUrl .= '?' . http_build_query($queryParams);
-                                }
+                            // Ajouter seulement si des filtres sont actifs
+                            if (!empty($queryParams)) {
+                                $exportUrl .= '?' . http_build_query($queryParams);
+                            }
                             ?>
                             <a href="<?= htmlspecialchars($exportUrl) ?>" class="btn btn-primary me-2 mb-2">
                                <i class="bi bi-upload"></i> Exporter
@@ -193,11 +195,26 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
                         <input type="date" class="form-control" name="date_debut" id="date_debut" value="<?= htmlspecialchars($filtreDateDebut ?? '') ?>">
                     </div>
 
+                
                     <!-- Date d'enregistrement : Au -->
                     <div class="col-md-3">
                         <label for="date_fin" class="form-label">à</label>
                         <input type="date" class="form-control" name="date_fin" id="date_fin" value="<?= htmlspecialchars($filtreDateFin ?? '') ?>">
                     </div>
+
+                    <!-- etats -->
+                    <div class="col-md-3">
+                        <label for="etatSelect" class="form-label">Filtrer par état de cotisation :</label>
+                        <select id="etatSelect" name="etat" class="form-select" style="width: 250px;">
+                            <option value="">-- Tous les états --</option>
+                            <option value="Actif" <?= $filtreEtat === 'Actif' ? 'selected' : '' ?>>Actif</option>
+                            <option value="À venir" <?= $filtreEtat === 'À venir' ? 'selected' : '' ?>>À venir</option>
+                            <option value="Expiré" <?= $filtreEtat === 'Expiré' ? 'selected' : '' ?>>Expiré</option>
+                             <option value="Alerte" <?= $filtreEtat === 'Alerte' ? 'selected' : '' ?>>En alerte</option>
+
+                        </select>
+                    </div>
+
                     <div class="col-12 text-end">
                         <button type="submit" class="btn btn-primary me-2">
                             <i class="bi bi-funnel-fill"></i> Appliquer
@@ -219,7 +236,97 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
                     <span><i class="bi bi-people-fill"></i> Liste des bénéficiaires</span>
                     <div class="ms-auto d-flex align-items-center gap-2">
                         <button class="badge bg-secondary" id="btnModifierSelection">Modifier la sélection</button>
-                        <span class="badge bg-primary"><?= $pdo->query("SELECT COUNT(*) FROM beneficiaires")->fetchColumn() ?> bénéficiaires</span>
+
+                        <!-- Compte du nombre de bénéficiaires -->
+                        <?php
+                        // Requête de comptage avec les mêmes filtres
+                        $sqlCount = "SELECT COUNT(*) FROM (
+                            SELECT *, 
+                                (CASE 
+                                    WHEN Date_Cotisation > CURDATE() THEN 'À venir'
+                                    WHEN Date_Cotisation <= CURDATE() AND Date_Fin_Cotisation >= CURDATE() THEN 'Actif'
+                                    ELSE 'Expiré'
+                                END) as Etat_Cotisation 
+                            FROM beneficiaires
+                            WHERE 1=1";
+
+                        $paramsCount = [];
+
+                        if (!empty($filtreType)) {
+                            $sqlCount .= " AND Type_Beneficiaire = ?";
+                            $paramsCount[] = $filtreType;
+                        }
+                        if (!empty($filtreRegime)) {
+                            $sqlCount .= " AND Regime = ?";
+                            $paramsCount[] = $filtreRegime;
+                        }
+                        if (!empty($filtreNom)) {
+                            $sqlCount .= " AND (Nom LIKE ? OR Prenom LIKE ?)";
+                            $paramsCount[] = "%$filtreNom%";
+                            $paramsCount[] = "%$filtreNom%";
+                        }
+                        if (!empty($filtreCode)) {
+                            $sqlCount .= " AND Code_Immatriculation LIKE ?";
+                            $paramsCount[] = "%$filtreCode%";
+                        }
+                        if (!empty($filtreGroupe)) {
+                            $sqlCount .= " AND Groupe = ?";
+                            $paramsCount[] = $filtreGroupe;
+                        }
+                        if (!empty($filtreDateDebut)) {
+                            $sqlCount .= " AND Date_Enreg >= ?";
+                            $paramsCount[] = $filtreDateDebut;
+                        }
+                        if (!empty($filtreDateFin)) {
+                            $sqlCount .= " AND Date_Enreg <= ?";
+                            $paramsCount[] = $filtreDateFin;
+                        }
+
+                        $sqlCount .= ") AS sub";
+
+                        // Filtre sur l'état de cotisation
+                        if (!empty($filtreEtat)) {
+                            if ($filtreEtat === 'Alerte') {
+                                // Pour l'alerte, on ne peut pas filtrer directement dans la requête SQL
+                                // On doit récupérer tous les résultats et filtrer manuellement
+                                $sqlAlerte = str_replace("COUNT(*)", "*", $sqlCount);
+                                $stmtAlerte = $pdo->prepare($sqlAlerte);
+                                $stmtAlerte->execute($paramsCount);
+                                $beneficiairesAlerte = $stmtAlerte->fetchAll(PDO::FETCH_ASSOC);
+                                
+                                $totalBeneficiaires = 0;
+                                foreach ($beneficiairesAlerte as $beneficiaire) {
+                                    $dateDebut = new DateTime($beneficiaire['Date_Cotisation']);
+                                    $dateFin = new DateTime($beneficiaire['Date_Fin_Cotisation']);
+                                    $aujourdhui = new DateTime();
+                                    
+                                    $totalDays = $dateFin->diff($dateDebut)->days ?: 1;
+                                    $daysPassed = $aujourdhui->diff($dateDebut)->invert ? $aujourdhui->diff($dateDebut)->days : 0;
+                                    $percentage = min(100, max(0, ($daysPassed / $totalDays) * 100));
+                                    
+                                    if ($percentage >= 70 && $percentage < 100 && $aujourdhui <= $dateFin) {
+                                        $totalBeneficiaires++;
+                                    }
+                                }
+                            } else {
+                                $sqlCount .= " WHERE Etat_Cotisation = ?";
+                                $paramsCount[] = $filtreEtat;
+                                $stmtCount = $pdo->prepare($sqlCount);
+                                $stmtCount->execute($paramsCount);
+                                $totalBeneficiaires = $stmtCount->fetchColumn();
+                            }
+                        } else {
+                            // Aucun filtre d'état
+                            $stmtCount = $pdo->prepare($sqlCount);
+                            $stmtCount->execute($paramsCount);
+                            $totalBeneficiaires = $stmtCount->fetchColumn();
+                        }
+                        ?>
+
+
+                        <span class="badge bg-primary">
+                            <?= $totalBeneficiaires ?> bénéficiaire<?= $totalBeneficiaires > 1 ? 's' : '' ?>
+                        </span>
                     </div>
                 </div>
             </div>
@@ -241,13 +348,15 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
                         </thead>
                         <tbody>
                             <?php
-                            $sql = "SELECT *, 
-                                    (CASE 
-                                        WHEN Date_Cotisation > CURDATE() THEN 'À venir'
-                                            WHEN Date_Cotisation <= CURDATE() AND Date_Fin_Cotisation >= CURDATE() THEN 'Actif'
-                                            ELSE 'Expiré'
-                                        END) as Etat_Cotisation 
-                                    FROM beneficiaires WHERE 1=1";
+                            $sql = "SELECT * FROM (
+                            SELECT *, 
+                                (CASE 
+                                    WHEN Date_Cotisation > CURDATE() THEN 'À venir'
+                                    WHEN Date_Cotisation <= CURDATE() AND Date_Fin_Cotisation >= CURDATE() THEN 'Actif'
+                                    ELSE 'Expiré'
+                                END) as Etat_Cotisation 
+                            FROM beneficiaires
+                            WHERE 1=1";
                             
                             $params = [];
                             if (!empty($filtreType)) {
@@ -279,32 +388,46 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
                                 $sql .= " AND Date_Enreg <= ?";
                                 $params[] = $filtreDateFin;
                             }
-                            
+                          $sql .= ") AS sub";
+
+                            if (!empty($filtreEtat) && $filtreEtat !== 'Alerte') {
+                                $sql .= " WHERE Etat_Cotisation = ?";
+                                $params[] = $filtreEtat;
+                            }
+
+
                             $stmt = $pdo->prepare($sql);
                             $stmt->execute($params);
                             
-                            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                       while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 
-                                // Calcul de l'alerte badge
-                                    $dateDebut = new DateTime($row['Date_Cotisation']);
-                                    $dateFin = new DateTime($row['Date_Fin_Cotisation']);
-                                    $aujourdhui = new DateTime();
+                        $dateDebut = new DateTime($row['Date_Cotisation']);
+                        $dateFin = new DateTime($row['Date_Fin_Cotisation']);
+                        $aujourdhui = new DateTime();
 
-                                    $totalDays = $dateFin->diff($dateDebut)->days ?: 1;
-                                    $daysPassed = $aujourdhui->diff($dateDebut)->invert ? $aujourdhui->diff($dateDebut)->days : 0;
-                                    $percentage = min(100, max(0, ($daysPassed / $totalDays) * 100));
+                        $totalDays = $dateFin->diff($dateDebut)->days ?: 1;
+                        $daysPassed = $aujourdhui->diff($dateDebut)->invert ? $aujourdhui->diff($dateDebut)->days : 0;
+                        $percentage = min(100, max(0, ($daysPassed / $totalDays) * 100));
 
-                                    $alerteBadge = '';
-                                    if ($percentage >= 70 && $percentage < 100 && $aujourdhui <= $dateFin) {
-                                        $alerteBadge = '<i class="bi bi-exclamation-triangle-fill text-warning blink"></i>';
-                                    }
+                        $alerteBadge = '';
+                        if ($percentage >= 70 && $percentage < 100 && $aujourdhui <= $dateFin) {
+                            $alerteBadge = '<i class="bi bi-exclamation-triangle-fill text-warning blink"></i>';
+                        }
 
-                                $statusClass = match ($row['Etat_Cotisation']) {
-                                    'Actif'    => 'badge-active',
-                                    'À venir'  => 'bg-warning',
-                                    'Expiré'   => 'badge-expired',
-                                    default    => 'badge-secondary' // au cas où
-                                };
+                        // 👉 Filtrer uniquement les alertes si demandé
+                        if ($filtreEtat === 'Alerte') {
+                            if (!($percentage >= 70 && $percentage < 100 && $aujourdhui <= $dateFin)) {
+                                continue;
+                            }
+                        }
+
+                        $statusClass = match ($row['Etat_Cotisation']) {
+                            'Actif'    => 'badge-active',
+                            'À venir'  => 'bg-warning',
+                            'Expiré'   => 'badge-expired',
+                            default    => 'badge-secondary'
+                        };
+                        
                                 echo "<tr>
                                         <td><input type='checkbox' class='select-beneficiaire' name='beneficiaires[]' value='" . $row['id'] . "'></td>
                                         <td>{$row['Date_Enreg']}</td>
@@ -447,13 +570,13 @@ $filtreDateFin = $_GET['date_fin'] ?? '';
                     <input type="date" name="date_fin_cotisation" id="date_fin_cotisation" class="form-control readonly-field" readonly>
                 </div>
 
-                <div class="col-md-12 ">
+                <!--div class="col-md-12 ">
                     <label for="photos" class="form-label">Photos</label>
                     <input type="file" name="photo[]" id="photo" class="form-control" accept="image/*" multiple>
                     <small class="text-muted">
                         Le nom de chaque photo doit correspondre à l'ID du bénéficiaire (ex: <code>15.jpg</code>, <code>42.png</code>)
                     </small>
-                </div>
+                </!--div-->
 
             </div>
           <!-- Ajoute d'autres champs si besoin -->

@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once 'header.php';
 require_once 'db.php';
 
 if (isset($_GET['code'])) {
@@ -70,18 +70,7 @@ if (!$beneficiaire) {
     
 </head>
 <body>
-    <header class="header">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <img src="images/Logosen.png" class="logo" alt="SENCSU Logo">
-                </div>
-                <div class="col-md-6 text-end">
-                    <span class="text-muted"><?= date('d/m/Y H:i') ?></span>
-                </div>
-            </div>
-        </div>
-    </header>
+    
 
         
     <div class="container mb-5">
@@ -196,7 +185,7 @@ if (!$beneficiaire) {
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Lieu de naissance:</span>
-                                <span class="info-value"><?= formatDate($beneficiaire['lieu_naissance']) ?></span>
+                                <span class="info-value"><?= htmlspecialchars($beneficiaire['lieu_naissance']) ?></span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">CNI:</span>
@@ -383,9 +372,6 @@ if (!$beneficiaire) {
                 //window.location.href = 'accueil.php';
                 // Fermer l'onglet
             window.close();
-            
-            // Solution de repli si window.close() ne fonctionne pas
-            window.location.href = 'accueil.php';
             });
         }
     }, 1000);
