@@ -85,6 +85,20 @@ $stmt = $pdo->prepare($query);
 $stmt->execute($params);
 $beneficiaires = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Filtrage par sélection d'IDs si présent
+if (!empty($_GET['ids'])) {
+    $ids = json_decode($_GET['ids'], true);
+    if (is_array($ids) && count($ids) > 0) {
+        // On convertit tout en chaîne pour éviter les soucis de typage
+        $ids = array_map('strval', $ids);
+        $beneficiaires = array_filter($beneficiaires, function($b) use ($ids) {
+            return in_array((string)$b['id'], $ids, true);
+        });
+        // Réindexer le tableau pour éviter les trous
+        $beneficiaires = array_values($beneficiaires);
+    }
+}
+
 // Filtrage par état
 if (!empty($filtreEtat)) {
     if ($filtreEtat === 'Alerte') {

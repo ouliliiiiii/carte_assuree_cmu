@@ -117,9 +117,9 @@ $filtreEtat = $_GET['etat'] ?? '';
                                 $exportUrl .= '?' . http_build_query($queryParams);
                             }
                             ?>
-                            <a href="<?= htmlspecialchars($exportUrl) ?>" class="btn btn-primary me-2 mb-2">
-                               <i class="bi bi-upload"></i> Exporter
-                            </a>
+                              <button id="exportBtn" class="btn btn-primary me-2 mb-2" type="button">
+                                  <i class="bi bi-upload"></i> Exporter
+                              </button>
 
                             <a href="Historiqueimport.php" class="btn btn-primary  mb-2"> 
                                    Historique des importations
@@ -428,8 +428,8 @@ $filtreEtat = $_GET['etat'] ?? '';
                             default    => 'badge-secondary'
                         };
                         
-                                echo "<tr>
-                                        <td><input type='checkbox' class='select-beneficiaire' name='beneficiaires[]' value='" . $row['id'] . "'></td>
+                echo "<tr data-id='" . $row['id'] . "'>
+                    <td><input type='checkbox' class='select-beneficiaire' name='beneficiaires[]' value='" . $row['id'] . "'></td>
                                         <td>{$row['Date_Enreg']}</td>
                                         <td>{$row['Code_Immatriculation']}</td>
                                         <td>{$row['Nom']} {$row['Prenom']}</td>
@@ -622,8 +622,8 @@ $filtreEtat = $_GET['etat'] ?? '';
 
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-
+document.addEventListener('DOMContentLoaded', function () 
+{
     const typeCotisation = document.getElementById('type_cotisation');
     const dateCotisation = document.getElementById('date_cotisation');
     const dateFinCotisation = document.getElementById('date_fin_cotisation');
@@ -698,25 +698,25 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('formModification').addEventListener('submit', function(e) {
         let isValid = true;
 
-        document.querySelectorAll('[required]').forEach(field => {
-            if (!field.value.trim()) {
-                isValid = false;
-                field.classList.add('is-invalid');
-            } else {
-                field.classList.remove('is-invalid');
-            }
-        });
+     //   document.querySelectorAll('[required]').forEach(field => {
+       //     if (!field.value.trim()) {
+         //       isValid = false;
+           //     field.classList.add('is-invalid');
+           // } else {
+             //   field.classList.remove('is-invalid');
+           // }
+        //});
 
-        if (!isValid) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'error',
-                title: 'Champs obligatoires manquants',
-                text: 'Veuillez remplir tous les champs obligatoires marqués d\'un astérisque (*)',
-                confirmButtonColor: '#2c3e50'
-            });
-        }
-    });
+        //if (!isValid) {
+          //  e.preventDefault();
+            //Swal.fire({
+              //  icon: 'error',
+               // title: 'Champs obligatoires manquants',
+                //text: 'Veuillez remplir tous les champs obligatoires marqués d\'un astérisque (*)',
+                //confirmButtonColor: '#2c3e50'
+           // });
+       // }
+    //});
 });
 </script>
 
@@ -724,49 +724,67 @@ document.addEventListener('DOMContentLoaded', function () {
 
     <script>
    
-        $(document).ready(function() {
-            // Initialisation DataTable
-            $('#beneficiairesTable').DataTable({
-                language: {
-                    url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
-                },
-                responsive: true,
-                dom: '<"top"f>rt<"bottom"lip><"clear">',
-                pageLength: 10,
-                lengthMenu: [5, 10, 25, 50, 100]
-            });
-
-            // Gestion de la suppression
-            
-                    let deleteCode = '';
-                    
-                    // Lorsqu'on clique sur un bouton de suppression
-                    $(document).on('click', '.delete-btn', function() {
-                        deleteCode = $(this).data('code');
-                    });
-                    
-                    // Confirmation de suppression
-                    $('#confirmDelete').click(function() {
-                        if (deleteCode) {
-                            window.location.href = 'supprimerbeneficiaire.php?code=' + deleteCode;
-                        }
-                    });
-            
-            // Gestion des alertes
-            <?php if ($message): ?>
-            Swal.fire({
-                position: 'top-end',
-                icon: 'success',
-                title: 'Bénéficiaire ajouté avec succès',
-                showConfirmButton: false,
-                timer: 1500
-            });
-            <?php endif; ?>
-        });
+       // $(document).ready(function() {
+        //     // Initialisation DataTable
+        //     $('#beneficiairesTable').DataTable({
+        //         language: {
+        //             url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
+        //         },
+        //         responsive: true,
+        //         dom: '<"top"f>rt<"bottom"lip><"clear">',
+        //         pageLength: 10,
+        //         lengthMenu: [5, 10, 25, 50, 100]
+        //     });
+        //
+        //     // Gestion de la suppression
+        //     
+        //             let deleteCode = '';
+        //             
+        //             // Lorsqu'on clique sur un bouton de suppression
+        //             $(document).on('click', '.delete-btn', function() {
+        //                 deleteCode = $(this).data('code');
+        //             });
+        //             
+        //             // Confirmation de suppression
+        //             $('#confirmDelete').click(function() {
+        //                 if (deleteCode) {
+        //                     window.location.href = 'supprimerbeneficiaire.php?code=' + deleteCode;
+        //                 }
+        //             });
+        //     
+        //     // Gestion des alertes
+        //     <?php if ($message): ?>
+        //     Swal.fire({
+        //         position: 'top-end',
+        //         icon: 'success',
+        //         title: 'Bénéficiaire ajouté avec succès',
+        //         showConfirmButton: false,
+        //         timer: 1500
+        //     });
+        //     <?php endif; ?>
+        // });
         
         
         // Export avancé
+        // Gestion du bouton Exporter : exporte la sélection si elle existe, sinon le filtré
         document.getElementById('exportBtn').addEventListener('click', function() {
+            // Utilise selectedIds du script de sélection globale
+            var selectedIds = window.selectedIds || [];
+            if (typeof selectedIds === 'undefined') {
+                // Récupère depuis DataTable si non global
+                selectedIds = [];
+                if (window.table) {
+                    window.table.rows({ search: 'applied' }).every(function() {
+                        var row = this.node();
+                        var checkbox = $(row).find('.select-beneficiaire');
+                        if (checkbox.length && checkbox.is(':checked')) {
+                            selectedIds.push(checkbox.val());
+                        }
+                    });
+                }
+            }
+        var selectedIds = window.selectedIds || [];
+        if (!Array.isArray(selectedIds)) selectedIds = [];
             Swal.fire({
                 title: 'Options d\'export',
                 html: `
@@ -799,7 +817,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     const format = document.getElementById('exportFormat').value;
                     const columns = Array.from(document.getElementById('exportColumns').selectedOptions)
                                         .map(opt => opt.value);
-                    window.location.href = `exporterliste.php?format=${format}&columns=${columns.join(',')}`;
+                    if (selectedIds && selectedIds.length > 0) {
+                        // Exporter uniquement la sélection
+                        // Envoie en GET (ou POST si besoin)
+                        const url = `exporterliste.php?format=${format}&columns=${columns.join(',')}&ids=${encodeURIComponent(JSON.stringify(selectedIds))}`;
+                        window.location.href = url;
+                    } else {
+                        // Exporter le filtré (comportement actuel)
+                        const url = `<?= htmlspecialchars($exportUrl) ?>`;
+                        // Ajoute les options d'export
+                        const sep = url.includes('?') ? '&' : '?';
+                        window.location.href = `${url}${sep}format=${format}&columns=${columns.join(',')}`;
+                    }
                 }
             });
         });
@@ -809,44 +838,132 @@ document.addEventListener('DOMContentLoaded', function () {
      <!-- selection --->
     <script>
         $(document).ready(function() {
-           
-            // Gestion du select all
-            $('#selectAll').on('click', function() {
-                var isChecked = $(this).is(':checked');
-                $('.select-beneficiaire').prop('checked', isChecked);
-            });
-
-            // Synchronise l'état du "select all" si on décoche un seul checkbox
-            $(document).on('change', '.select-beneficiaire', function() {
-                const all = $('.select-beneficiaire').length;
-                const checked = $('.select-beneficiaire:checked').length;
-                $('#selectAll').prop('checked', all === checked);
-            });
-        });
-
-
-        document.getElementById('btnModifierSelection').addEventListener('click', function () {
-            const ids = Array.from(document.querySelectorAll('.select-beneficiaire:checked'))
-                            .map(cb => cb.value);
-
-            if (ids.length === 0) 
-            {
-                    Swal.fire({
-                    icon: 'warning',
-                    title: 'Aucun bénéficiaire sélectionné',
-                    text: 'Veuillez sélectionner au moins un bénéficiaire.',
-                    confirmButtonText: 'OK'
+            // Initialisation DataTable une seule fois et accessible globalement
+            if (!window.table) {
+                window.table = $('#beneficiairesTable').DataTable({
+                    language: {
+                        url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
+                    },
+                    responsive: true,
+                    dom: '<"top"f>rt<"bottom"lip><"clear">',
+                    pageLength: 10,
+                    lengthMenu: [5, 10, 25, 50, 100]
                 });
-                            
-                //alert("Veuillez sélectionner au moins un bénéficiaire.");
-                return;
             }
 
-        document.getElementById('selectedIds').value = JSON.stringify(ids);
-        const modal = new bootstrap.Modal(document.getElementById('modalModification'));
-        modal.show();
-        });
+            // Tableau pour stocker les IDs sélectionnés globalement
+            if (!window.selectedIds) window.selectedIds = [];
+            var selectedIds = window.selectedIds;
+            var table = window.table;
 
+            // Fonction pour obtenir tous les IDs du tableau (même ceux non affichés)
+            function getAllIds() {
+                var ids = [];
+                table.rows({ search: 'applied' }).every(function() {
+                    var row = this.node();
+                    var checkbox = $(row).find('.select-beneficiaire');
+                    if (checkbox.length) {
+                        ids.push(checkbox.val());
+                    }
+                });
+                return ids;
+            }
+
+            // Initialisation robuste de la sélection globale
+            window.selectedIds = window.selectedIds || [];
+
+            // Sélection/désélection de tous les visibles (Select All)
+            $('#selectAll').on('click', function() {
+                // Sécurise window.selectedIds comme tableau
+                if (!Array.isArray(window.selectedIds)) {
+                    try {
+                        window.selectedIds = JSON.parse(window.selectedIds);
+                        if (!Array.isArray(window.selectedIds)) window.selectedIds = [];
+                    } catch(e) { window.selectedIds = []; }
+                }
+                var isChecked = $(this).is(':checked');
+                // Utilise DataTables pour récupérer tous les IDs filtrés (même non visibles)
+                var allIds = [];
+                table.rows({ search: 'applied' }).every(function() {
+                    var row = this.node();
+                    var checkbox = $(row).find('.select-beneficiaire');
+                    if (checkbox.length) {
+                        allIds.push(checkbox.val());
+                    }
+                });
+                if (isChecked) {
+                    allIds.forEach(function(id) {
+                        if (!window.selectedIds.includes(id)) window.selectedIds.push(id);
+                    });
+                } else {
+                    window.selectedIds = window.selectedIds.filter(function(id) {
+                        return !allIds.includes(id);
+                    });
+                }
+                // Met à jour l'affichage des cases à cocher visibles
+                $('.select-beneficiaire').each(function() {
+                    var id = $(this).val();
+                    $(this).prop('checked', window.selectedIds.includes(id));
+                });
+            });
+
+            // Sélection individuelle
+            $(document).on('change', '.select-beneficiaire', function() {
+                // Sécurise window.selectedIds comme tableau
+                if (!Array.isArray(window.selectedIds)) {
+                    try {
+                        window.selectedIds = JSON.parse(window.selectedIds);
+                        if (!Array.isArray(window.selectedIds)) window.selectedIds = [];
+                    } catch(e) { window.selectedIds = []; }
+                }
+                var id = $(this).val();
+                if ($(this).is(':checked')) {
+                    if (!window.selectedIds.includes(id)) window.selectedIds.push(id);
+                } else {
+                    window.selectedIds = window.selectedIds.filter(function(item) { return item !== id; });
+                }
+                // Met à jour l'état du Select All pour la page courante
+                var allChecked = $('.select-beneficiaire').length > 0 && $('.select-beneficiaire').toArray().every(function(cb) {
+                    return window.selectedIds.includes($(cb).val());
+                });
+                $('#selectAll').prop('checked', allChecked);
+            });
+
+            // Restauration de l'état des cases à chaque draw/page
+            table.on('draw', function() {
+                // Sécurise window.selectedIds comme tableau
+                if (!Array.isArray(window.selectedIds)) {
+                    try {
+                        window.selectedIds = JSON.parse(window.selectedIds);
+                        if (!Array.isArray(window.selectedIds)) window.selectedIds = [];
+                    } catch(e) { window.selectedIds = []; }
+                }
+                $('.select-beneficiaire').each(function() {
+                    var id = $(this).val();
+                    $(this).prop('checked', window.selectedIds.includes(id));
+                });
+                var allChecked = $('.select-beneficiaire').length > 0 && $('.select-beneficiaire').toArray().every(function(cb) {
+                    return window.selectedIds.includes($(cb).val());
+                });
+                $('#selectAll').prop('checked', allChecked);
+            });
+
+            // Gestion du bouton de modification collective
+            document.getElementById('btnModifierSelection').addEventListener('click', function () {
+                if (window.selectedIds.length === 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Aucun bénéficiaire sélectionné',
+                        text: 'Veuillez sélectionner au moins un bénéficiaire.',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                document.getElementById('selectedIds').value = JSON.stringify(window.selectedIds);
+                const modal = new bootstrap.Modal(document.getElementById('modalModification'));
+                modal.show();
+            });
+        });
     </script>
     <!-- region departement commune -->
     <script>
@@ -914,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', function () {
             communeSelect.appendChild(option);
             });
         }
-        }
+}
     </script>
 
 
