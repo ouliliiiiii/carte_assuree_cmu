@@ -1,5 +1,6 @@
 <?php
 require 'db.php';
+require 'audit.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ids'])) {
     $ids = json_decode($_POST['ids'], true);
@@ -39,6 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ids'])) {
 
         if ($stmt->rowCount() > 0) {
             $modification_effectuee = true;
+            // Log modifications collectives
+            $actor = $_SESSION['user'] ?? 'system';
+            $detailsText = 'modification collective beneficiaires ids: ' . implode(',', $ids);
+            log_action($pdo, $actor, 'modification', null, $detailsText);
         }
     }
 
@@ -70,10 +75,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ids'])) {
                 $fullPath = $uploadDir . $newFileName;
                 $relativePath = $webPath . $newFileName;
 
-                if (move_uploaded_file($tmpName, $fullPath)) {
+                    if (move_uploaded_file($tmpName, $fullPath)) {
                     $stmtPhoto = $pdo->prepare("UPDATE beneficiaires SET photo = ? WHERE id = ?");
                     $stmtPhoto->execute([$relativePath, $idFromFile]);
                     $modification_effectuee = true;
+                    // Journaliser l'upload de la photo : récupérer le nom et prénom du bénéficiaire pour construire la cible lisible
+                    $actor = $_SESSION['user'] ?? 'system';
+                    $s = $pdo->prepare('SELECT Nom, Prenom, Code_Immatriculation FROM beneficiaires WHERE id = ?');
+                    $s->execute([$idFromFile]);
+                    $b = $s->fetch(PDO::FETCH_ASSOC);
+                    $target = $b ? trim(($b['Nom'] ?? '') . ' ' . ($b['Prenom'] ?? '')) : $idFromFile;
+                    $code = $b['Code_Immatriculation'] ?? $idFromFile;
+                    $detailsText = 'modification photo beneficiaire ' . $code;
+                    log_action($pdo, $actor, 'modification', $target, $detailsText);
                 }
             }
         }

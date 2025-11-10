@@ -8,6 +8,15 @@ if (isset($_GET['code'])) {
     $stmt = $pdo->prepare("SELECT * FROM beneficiaires WHERE Code_Immatriculation = :code");
     $stmt->execute([':code' => $code]);
     $beneficiaire = $stmt->fetch(PDO::FETCH_ASSOC);
+     $stmtParam = $pdo->prepare("
+        SELECT p.categorie, p.valeur
+        FROM parametres p
+        INNER JOIN beneficiaire_parametres bp ON bp.parametre_id = p.id
+        WHERE bp.beneficiaire_id = :beneficiaire_id
+        ORDER BY p.categorie
+    ");
+    $stmtParam->execute([':beneficiaire_id' => $beneficiaire['id_beneficiaire']]);
+    $benefParams = $stmtParam->fetchAll(PDO::FETCH_GROUP|PDO::FETCH_COLUMN);
 
     // Formatage des dates
     function formatDate($dateStr) {
@@ -71,6 +80,7 @@ if (!$beneficiaire) {
 </head>
 <body>
     
+
 
         
     <div class="container mb-5">
@@ -231,27 +241,19 @@ if (!$beneficiaire) {
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">Régime:</span>
-                                    <span class="info-value"><?= htmlspecialchars($beneficiaire['Regime']) ?></span>
-                                </div>
-                                
-                                <div class="info-item">
-                                    <span class="info-label">Assureur:</span>
-                                    <span class="info-value"><?= htmlspecialchars($beneficiaire['Assureur']) ?></span>
-                                </div>
-                                
-                                <div class="info-item">
-                                    <span class="info-label">Type d'adhésion:</span>
-                                    <span class="info-value"><?= htmlspecialchars($beneficiaire['Type_Adhesion']) ?></span>
-                                </div>
+                                <?php foreach($benefParams as $categorie => $valeurs): ?>
+                                               
+                                    <div class="info-item">
+                                        <div class="row">
+                                        <span class="info-label col-lg-6"><?= htmlspecialchars($categorie) ?>:</span>
+                                        <span class="info-value col-lg-6"><?= htmlspecialchars(implode(', ', $valeurs)) ?></span>
+                                        </div>
+                                    </div>
+                                               
+                                <?php endforeach; ?>
                             </div>
                             
                             <div class="col-md-6">
-                                <div class="info-item">
-                                    <span class="info-label">Type de bénéficiaire:</span>
-                                    <span class="info-value"><?= htmlspecialchars($beneficiaire['Type_Beneficiaire']) ?></span>
-                                </div>
                                 
                                 <div class="info-item">
                                     <span class="info-label">Groupe d'appartenance:</span>

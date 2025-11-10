@@ -12,6 +12,9 @@ if (isset($_GET['added'])) {
 if (isset($_GET['import_success']) && $_GET['import_success'] == 1) {
     $message = "Importation des bénéficiaires réussie !";
 }
+// Récupère la région de l'utilisateur connecté
+$userRegion = $_SESSION['region'] ?? '';
+$userRole = $_SESSION['role'] ?? '';
 
 // Récupération des paramètres de filtre
 $filtreType = $_GET['type_beneficiaire'] ?? '';
@@ -65,1018 +68,985 @@ $filtreEtat = $_GET['etat'] ?? '';
     <link rel="stylesheet" href="new_style.css">
  
 </head>
-<body>
+    <body>
     
-    <?php 
-        //On appelle le header de la page
-       // include 'header.php'; 
-    ?>
+        <?php 
+            //On appelle le header de la page
+        // include 'header.php'; 
+        ?>
 
-    <div class="container mb-5">
-        <?php if ($message): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <?= $message ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        <?php endif; ?>
+        <div class="container mb-5">
+            <?php if ($message): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <?= $message ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
 
-        <!-- Section Actions -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-md-3 mb-3 mb-md-0">
-                        <h5 class="mb-0">Gestion des bénéficiaires</h5>
-                    </div>
-                    <div class="col-md-9 text-md-end">
-                        <div class="d-flex flex-wrap justify-content-md-end">
-                            <a href="ajoutbeneficiaire.php" class="btn btn-success me-2 mb-2">
-                                 <button class="btn btn-success ">
-                                   <i class="bi bi-plus-circle"></i> Nouveau bénéficiaire
-                                  </button> 
-                            </a>
-                            <a href="importerListe.php" class="btn btn-primary me-2 mb-2"> 
-                                  <i class="bi bi-download"></i> Importer
-                            </a>
-                           
+            <!-- Section Actions -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 mb-3 mb-md-0">
+                            <h5 class="mb-0">Gestion des bénéficiaires</h5>
+                        </div>
+                        <div class="col-md-9 text-md-end">
+                            <div class="d-flex flex-wrap justify-content-md-end">
+                                <a href="ajoutbeneficiaire.php" class="btn btn-success me-2 mb-2">
+                                    <button class="btn btn-success ">
+                                    <i class="bi bi-plus-circle"></i> Nouveau bénéficiaire
+                                    </button> 
+                                </a>
+                                <a href="importerListe.php" class="btn btn-primary me-2 mb-2"> 
+                                    <i class="bi bi-download"></i> Importer
+                                </a>
+                            
 
-                            <?php
-                            // Construire l'URL d'export avec les filtres actuels
-                            $exportUrl = 'exporterliste.php';
-                            $queryParams = [];
-                            if (!empty($filtreType)) $queryParams['type_beneficiaire'] = $filtreType;
-                            if (!empty($filtreRegime)) $queryParams['regime'] = $filtreRegime;
-                            if (!empty($filtreNom)) $queryParams['search_nom'] = $filtreNom;
-                            if (!empty($filtreCode)) $queryParams['search_code'] = $filtreCode;
-                            if (!empty($filtreGroupe)) $queryParams['groupe'] = $filtreGroupe; // Correction ici
-                            if (!empty($filtreDateDebut)) $queryParams['date_debut'] = $filtreDateDebut;
-                            if (!empty($filtreDateFin)) $queryParams['date_fin'] = $filtreDateFin;
-                            if (!empty($filtreEtat)) $queryParams['etat'] = $filtreEtat; 
+                                <?php
+                                // Construire l'URL d'export avec les filtres actuels
+                                $exportUrl = 'exporterliste.php';
+                                $queryParams = [];
+                                if (!empty($filtreType)) $queryParams['type_beneficiaire'] = $filtreType;
+                                if (!empty($filtreRegime)) $queryParams['regime'] = $filtreRegime;
+                                if (!empty($filtreNom)) $queryParams['search_nom'] = $filtreNom;
+                                if (!empty($filtreCode)) $queryParams['search_code'] = $filtreCode;
+                                if (!empty($filtreGroupe)) $queryParams['groupe'] = $filtreGroupe; // Correction ici
+                                if (!empty($filtreDateDebut)) $queryParams['date_debut'] = $filtreDateDebut;
+                                if (!empty($filtreDateFin)) $queryParams['date_fin'] = $filtreDateFin;
+                                if (!empty($filtreEtat)) $queryParams['etat'] = $filtreEtat; 
 
-                            // Ajouter seulement si des filtres sont actifs
-                            if (!empty($queryParams)) {
-                                $exportUrl .= '?' . http_build_query($queryParams);
-                            }
-                            ?>
-                              <button id="exportBtn" class="btn btn-primary me-2 mb-2" type="button">
-                                  <i class="bi bi-upload"></i> Exporter
-                              </button>
+                                // Ajouter seulement si des filtres sont actifs
+                                if (!empty($queryParams)) {
+                                    $exportUrl .= '?' . http_build_query($queryParams);
+                                }
+                                ?>
+                                <button id="exportBtn" class="btn btn-primary me-2 mb-2" type="button">
+                                    <i class="bi bi-upload"></i> Exporter
+                                </button>
 
-                            <a href="Historiqueimport.php" class="btn btn-primary  mb-2"> 
-                                   Historique des importations
-                            </a>
+                                <a href="Historiqueimport.php" class="btn btn-primary  mb-2"> 
+                                    Historique des importations
+                                </a>
 
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Section Filtres -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <i class="bi bi-funnel"></i> Filtres de recherche
-            </div>
-            <div class="card-body">
-                <form id="filtreForm" method="get" class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label for="search_nom" class="form-label">Nom/Prénom</label>
-                        <input type="text" class="form-control" id="search_nom" name="search_nom" 
-                               value="<?= htmlspecialchars($filtreNom) ?>" placeholder="Rechercher...">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="search_code" class="form-label">Code</label>
-                        <input type="text" class="form-control" id="search_code" name="search_code" 
-                               value="<?= htmlspecialchars($filtreCode) ?>" placeholder="Code immatriculation">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="type_beneficiaire" class="form-label">Type bénéficiaire</label>
-                        <select id="type_beneficiaire" name="type_beneficiaire" class="form-select">
-                            <option value="">Tous les types</option>
-                            <?php
-                            $types = $pdo->query("SELECT DISTINCT Type_Beneficiaire FROM beneficiaires")->fetchAll(PDO::FETCH_COLUMN);
-                            foreach ($types as $type) {
-                                $selected = $type === $filtreType ? 'selected' : '';
-                                echo "<option value=\"".htmlspecialchars($type)."\" $selected>".htmlspecialchars($type)."</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="regime" class="form-label">Régime</label>
-                        <select id="regime" name="regime" class="form-select">
-                            <option value="">Tous les régimes</option>
-                            <?php
-                            $regimes = $pdo->query("SELECT DISTINCT Regime FROM beneficiaires")->fetchAll(PDO::FETCH_COLUMN);
-                            foreach ($regimes as $regime) {
-                                $selected = $regime === $filtreRegime ? 'selected' : '';
-                                echo "<option value=\"".htmlspecialchars($regime)."\" $selected>".htmlspecialchars($regime)."</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    <!-- Groupe d'appartenance -->
-                    <div class="col-md-3">
-                        <label for="groupe" class="form-label">Groupe</label>
-                        <select id="groupe" name="groupe" class="form-select">
-                            <option value="">Tous les groupes</option>
-                            <?php
-                            $groupes = $pdo->query("SELECT DISTINCT Groupe FROM beneficiaires")->fetchAll(PDO::FETCH_COLUMN);
-                            foreach ($groupes as $groupe) {
-                                $selected = $groupe === $filtreGroupe ? 'selected' : '';
-                                echo "<option value=\"".htmlspecialchars($groupe)."\" $selected>".htmlspecialchars($groupe)."</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
+            <!-- Section Filtres -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-funnel"></i> Filtres de recherche
+                </div>
+                <div class="card-body">
+                    <form id="filtreForm" method="get" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="search_nom" class="form-label">Nom/Prénom</label>
+                            <input type="text" class="form-control" id="search_nom" name="search_nom" 
+                                value="<?= htmlspecialchars($filtreNom) ?>" placeholder="Rechercher...">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="type_beneficiaire" class="form-label">Type bénéficiaire</label>
+                            <select id="type_beneficiaire" name="type_beneficiaire" class="form-select">
+                                <option value="">Tous les types</option>
+                                <?php
+                                $types = $pdo->query("SELECT DISTINCT Type_Beneficiaire FROM beneficiaires")->fetchAll(PDO::FETCH_COLUMN);
+                                foreach ($types as $type) {
+                                    $selected = $type === $filtreType ? 'selected' : '';
+                                    echo "<option value=\"".htmlspecialchars($type)."\" $selected>".htmlspecialchars($type)."</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="regime" class="form-label">Régime</label>
+                            <select id="regime" name="regime" class="form-select">
+                                <option value="">Tous les régimes</option>
+                                <?php
+                                $regimes = $pdo->query("SELECT DISTINCT Regime FROM beneficiaires")->fetchAll(PDO::FETCH_COLUMN);
+                                foreach ($regimes as $regime) {
+                                    $selected = $regime === $filtreRegime ? 'selected' : '';
+                                    echo "<option value=\"".htmlspecialchars($regime)."\" $selected>".htmlspecialchars($regime)."</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <!-- Groupe d'appartenance -->
+                        <div class="col-md-3">
+                            <label for="groupe" class="form-label">Groupe</label>
+                            <select id="groupe" name="groupe" class="form-select">
+                                <option value="">Tous les groupes</option>
+                                <?php
+                                $groupes = $pdo->query("SELECT DISTINCT Groupe FROM beneficiaires")->fetchAll(PDO::FETCH_COLUMN);
+                                foreach ($groupes as $groupe) {
+                                    $selected = $groupe === $filtreGroupe ? 'selected' : '';
+                                    echo "<option value=\"".htmlspecialchars($groupe)."\" $selected>".htmlspecialchars($groupe)."</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
 
-                    <!-- Date d'enregistrement : Du -->
-                    <div class="col-md-3">
-                        <label for="date_debut" class="form-label">Date d'enregistrement (de)</label>
-                        <input type="date" class="form-control" name="date_debut" id="date_debut" value="<?= htmlspecialchars($filtreDateDebut ?? '') ?>">
-                    </div>
+                        <!-- Date d'enregistrement : Du -->
+                        <div class="col-md-3">
+                            <label for="date_debut" class="form-label">Date d'enregistrement (de)</label>
+                            <input type="date" class="form-control" name="date_debut" id="date_debut" value="<?= htmlspecialchars($filtreDateDebut ?? '') ?>">
+                        </div>
 
-                
-                    <!-- Date d'enregistrement : Au -->
-                    <div class="col-md-3">
-                        <label for="date_fin" class="form-label">à</label>
-                        <input type="date" class="form-control" name="date_fin" id="date_fin" value="<?= htmlspecialchars($filtreDateFin ?? '') ?>">
-                    </div>
+                    
+                        <!-- Date d'enregistrement : Au -->
+                        <div class="col-md-3">
+                            <label for="date_fin" class="form-label">à</label>
+                            <input type="date" class="form-control" name="date_fin" id="date_fin" value="<?= htmlspecialchars($filtreDateFin ?? '') ?>">
+                        </div>
 
-                    <!-- etats -->
-                    <div class="col-md-3">
-                        <label for="etatSelect" class="form-label">Filtrer par état de cotisation :</label>
-                        <select id="etatSelect" name="etat" class="form-select" style="width: 250px;">
-                            <option value="">-- Tous les états --</option>
-                            <option value="Actif" <?= $filtreEtat === 'Actif' ? 'selected' : '' ?>>Actif</option>
-                            <option value="À venir" <?= $filtreEtat === 'À venir' ? 'selected' : '' ?>>À venir</option>
-                            <option value="Expiré" <?= $filtreEtat === 'Expiré' ? 'selected' : '' ?>>Expiré</option>
-                             <option value="Alerte" <?= $filtreEtat === 'Alerte' ? 'selected' : '' ?>>En alerte</option>
+                        <!-- etats -->
+                        <div class="col-md-3">
+                            <label for="etatSelect" class="form-label">Filtrer par état de cotisation :</label>
+                            <select id="etatSelect" name="etat" class="form-select" style="width: 250px;">
+                                <option value="">-- Tous les états --</option>
+                                <option value="Actif" <?= $filtreEtat === 'Actif' ? 'selected' : '' ?>>Actif</option>
+                                <option value="À venir" <?= $filtreEtat === 'À venir' ? 'selected' : '' ?>>À venir</option>
+                                <option value="Expiré" <?= $filtreEtat === 'Expiré' ? 'selected' : '' ?>>Expiré</option>
+                                <option value="Alerte" <?= $filtreEtat === 'Alerte' ? 'selected' : '' ?>>En alerte</option>
 
-                        </select>
-                    </div>
+                            </select>
+                        </div>
 
-                    <div class="col-12 text-end">
-                        <button type="submit" class="btn btn-primary me-2">
-                            <i class="bi bi-funnel-fill"></i> Appliquer
-                        </button>
-                        <a href="<?= basename($_SERVER['PHP_SELF']) ?>" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-counterclockwise"></i> 
-                            Réinitialiser
-                            
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Tableau des bénéficiaires -->
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-people-fill"></i> Liste des bénéficiaires</span>
-                    <div class="ms-auto d-flex align-items-center gap-2">
-                        <button class="badge bg-secondary" id="btnModifierSelection">Modifier la sélection</button>
-
-                        <!-- Compte du nombre de bénéficiaires -->
-                        <?php
-                        // Requête de comptage avec les mêmes filtres
-                        $sqlCount = "SELECT COUNT(*) FROM (
-                            SELECT *, 
-                                (CASE 
-                                    WHEN Date_Cotisation > CURDATE() THEN 'À venir'
-                                    WHEN Date_Cotisation <= CURDATE() AND Date_Fin_Cotisation >= CURDATE() THEN 'Actif'
-                                    ELSE 'Expiré'
-                                END) as Etat_Cotisation 
-                            FROM beneficiaires
-                            WHERE 1=1";
-
-                        $paramsCount = [];
-
-                        if (!empty($filtreType)) {
-                            $sqlCount .= " AND Type_Beneficiaire = ?";
-                            $paramsCount[] = $filtreType;
-                        }
-                        if (!empty($filtreRegime)) {
-                            $sqlCount .= " AND Regime = ?";
-                            $paramsCount[] = $filtreRegime;
-                        }
-                        if (!empty($filtreNom)) {
-                            $sqlCount .= " AND (Nom LIKE ? OR Prenom LIKE ?)";
-                            $paramsCount[] = "%$filtreNom%";
-                            $paramsCount[] = "%$filtreNom%";
-                        }
-                        if (!empty($filtreCode)) {
-                            $sqlCount .= " AND Code_Immatriculation LIKE ?";
-                            $paramsCount[] = "%$filtreCode%";
-                        }
-                        if (!empty($filtreGroupe)) {
-                            $sqlCount .= " AND Groupe = ?";
-                            $paramsCount[] = $filtreGroupe;
-                        }
-                        if (!empty($filtreDateDebut)) {
-                            $sqlCount .= " AND Date_Enreg >= ?";
-                            $paramsCount[] = $filtreDateDebut;
-                        }
-                        if (!empty($filtreDateFin)) {
-                            $sqlCount .= " AND Date_Enreg <= ?";
-                            $paramsCount[] = $filtreDateFin;
-                        }
-
-                        $sqlCount .= ") AS sub";
-
-                        // Filtre sur l'état de cotisation
-                        if (!empty($filtreEtat)) {
-                            if ($filtreEtat === 'Alerte') {
-                                // Pour l'alerte, on ne peut pas filtrer directement dans la requête SQL
-                                // On doit récupérer tous les résultats et filtrer manuellement
-                                $sqlAlerte = str_replace("COUNT(*)", "*", $sqlCount);
-                                $stmtAlerte = $pdo->prepare($sqlAlerte);
-                                $stmtAlerte->execute($paramsCount);
-                                $beneficiairesAlerte = $stmtAlerte->fetchAll(PDO::FETCH_ASSOC);
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-funnel-fill"></i> Appliquer
+                            </button>
+                            <a href="<?= basename($_SERVER['PHP_SELF']) ?>" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-counterclockwise"></i> 
+                                Réinitialiser
                                 
-                                $totalBeneficiaires = 0;
-                                foreach ($beneficiairesAlerte as $beneficiaire) {
-                                    $dateDebut = new DateTime($beneficiaire['Date_Cotisation']);
-                                    $dateFin = new DateTime($beneficiaire['Date_Fin_Cotisation']);
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tableau des bénéficiaires -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-people-fill"></i> Liste des bénéficiaires</span>
+                        <div class="ms-auto d-flex align-items-center gap-2">
+                            <button class="badge bg-secondary" id="btnModifierSelection">Modifier la sélection</button>
+                            <!-- Compte du nombre de bénéficiaires -->
+                            <?php
+                                // Requête de comptage avec les mêmes filtres
+                                $sqlCount = "SELECT COUNT(*) FROM (
+                                    SELECT *, 
+                                        (CASE 
+                                            WHEN Date_Cotisation > CURDATE() THEN 'À venir'
+                                            WHEN Date_Cotisation <= CURDATE() AND Date_Fin_Cotisation >= CURDATE() THEN 'Actif'
+                                            ELSE 'Expiré'
+                                        END) as Etat_Cotisation 
+                                    FROM beneficiaires
+                                    WHERE 1=1";
+
+                                $paramsCount = [];
+
+                                // Si l'utilisateur est un agent, restreindre le comptage à sa région
+                                if ($userRole !== 'admin' && !empty($userRegion)) {
+                                    $sqlCount .= " AND Region = ?";
+                                    $paramsCount[] = $userRegion;
+                                }
+
+                                if (!empty($filtreType)) {
+                                    $sqlCount .= " AND Type_Beneficiaire = ?";
+                                    $paramsCount[] = $filtreType;
+                                }
+                                if (!empty($filtreRegime)) {
+                                    $sqlCount .= " AND Regime = ?";
+                                    $paramsCount[] = $filtreRegime;
+                                }
+                                if (!empty($filtreNom)) {
+                                    $sqlCount .= " AND (Nom LIKE ? OR Prenom LIKE ?)";
+                                    $paramsCount[] = "%$filtreNom%";
+                                    $paramsCount[] = "%$filtreNom%";
+                                }
+                                if (!empty($filtreGroupe)) {
+                                    $sqlCount .= " AND Groupe = ?";
+                                    $paramsCount[] = $filtreGroupe;
+                                }
+                                if (!empty($filtreDateDebut)) {
+                                    $sqlCount .= " AND Date_Enreg >= ?";
+                                    $paramsCount[] = $filtreDateDebut;
+                                }
+                                if (!empty($filtreDateFin)) {
+                                    $sqlCount .= " AND Date_Enreg <= ?";
+                                    $paramsCount[] = $filtreDateFin;
+                                }
+
+                                $sqlCount .= ") AS sub";
+
+                                // Filtre sur l'état de cotisation
+                                if (!empty($filtreEtat)) {
+                                    if ($filtreEtat === 'Alerte') {
+                                        // Pour l'alerte, on ne peut pas filtrer directement dans la requête SQL
+                                        // On doit récupérer tous les résultats et filtrer manuellement
+                                        $sqlAlerte = str_replace("COUNT(*)", "*", $sqlCount);
+                                        $stmtAlerte = $pdo->prepare($sqlAlerte);
+                                        $stmtAlerte->execute($paramsCount);
+                                        $beneficiairesAlerte = $stmtAlerte->fetchAll(PDO::FETCH_ASSOC);
+                                        
+                                        $totalBeneficiaires = 0;
+                                        foreach ($beneficiairesAlerte as $beneficiaire) 
+                                            {
+                                        $dateDebut = new DateTime($beneficiaire['Date_Cotisation']);
+                                        $dateFin = new DateTime($beneficiaire['Date_Fin_Cotisation']);
+                                        $aujourdhui = new DateTime();
+                                        
+                                        $totalDays = $dateFin->diff($dateDebut)->days ?: 1;
+                                        $daysPassed = $aujourdhui->diff($dateDebut)->invert ? $aujourdhui->diff($dateDebut)->days : 0;
+                                        $percentage = min(100, max(0, ($daysPassed / $totalDays) * 100));
+                                        
+                                        if ($percentage >= 70 && $percentage < 100 && $aujourdhui <= $dateFin) {
+                                            $totalBeneficiaires++;
+                                        }
+                                    }
+                                } else {
+                                    $sqlCount .= " WHERE Etat_Cotisation = ?";
+                                    $paramsCount[] = $filtreEtat;
+                                    $stmtCount = $pdo->prepare($sqlCount);
+                                    $stmtCount->execute($paramsCount);
+                                    $totalBeneficiaires = $stmtCount->fetchColumn();
+                                }
+                                } else {
+                                    // Aucun filtre d'état
+                                    $stmtCount = $pdo->prepare($sqlCount);
+                                    $stmtCount->execute($paramsCount);
+                                    $totalBeneficiaires = $stmtCount->fetchColumn();
+                                }
+                            ?>
+
+                            <button class="badge bg-danger" id="btnSupprimerSelection">Supprimer la sélection</button>
+
+                            <span class="badge bg-primary">
+                                <?= $totalBeneficiaires ?> bénéficiaire<?= $totalBeneficiaires > 1 ? 's' : '' ?>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="beneficiairesTable" class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th> <input type="checkbox" id="selectAll"> </th>
+                                    <th>Date Enregistrement</th>
+                                    <th>Code</th>
+                                    <th>Nom & Prénom</th>
+                                    <th>Téléphone</th>
+                                <!--  <th>Régime</th> -->
+                                    <th>Type Bénéficiaire</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                $sql = "SELECT * FROM (
+                                SELECT *, 
+                                    (CASE 
+                                        WHEN Date_Cotisation > CURDATE() THEN 'À venir'
+                                        WHEN Date_Cotisation <= CURDATE() AND Date_Fin_Cotisation >= CURDATE() THEN 'Actif'
+                                        ELSE 'Expiré'
+                                    END) as Etat_Cotisation 
+                                FROM beneficiaires
+                                WHERE 1=1";
+                                
+                                $params = [];
+                                if ($userRole !== 'admin' && !empty($userRegion)) {
+                                    $sql .= " AND Region = ?";
+                                    $params[] = $userRegion;
+                                }
+
+
+                                if (!empty($filtreType)) {
+                                    $sql .= " AND Type_Beneficiaire = ?";
+                                    $params[] = $filtreType;
+                                }
+                                if (!empty($filtreRegime)) {
+                                    $sql .= " AND Regime = ?";
+                                    $params[] = $filtreRegime;
+                                }
+                                if (!empty($filtreNom)) {
+                                    $sql .= " AND (Nom LIKE ? OR Prenom LIKE ?)";
+                                    $params[] = "%$filtreNom%";
+                                    $params[] = "%$filtreNom%";
+                                }
+                                if (!empty($filtreCode)) {
+                                    $sql .= " AND Code_Immatriculation LIKE ?";
+                                    $params[] = "%$filtreCode%";
+                                }
+                                if (!empty($filtreGroupe)) {
+                                    $sql .= " AND Groupe = ?";
+                                    $params[] = $filtreGroupe;
+                                }
+                                if (!empty($filtreDateDebut)) {
+                                    $sql .= " AND Date_Enreg >= ?";
+                                    $params[] = $filtreDateDebut;
+                                }
+                                if (!empty($filtreDateFin)) {
+                                    $sql .= " AND Date_Enreg <= ?";
+                                    $params[] = $filtreDateFin;
+                                }
+                            $sql .= ") AS sub";
+
+                                if (!empty($filtreEtat) && $filtreEtat !== 'Alerte') {
+                                    $sql .= " WHERE Etat_Cotisation = ?";
+                                    $params[] = $filtreEtat;
+                                }
+
+
+                                $stmt = $pdo->prepare($sql);
+                                $stmt->execute($params);
+                                
+                                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+
+                                    $dateDebut = new DateTime($row['Date_Cotisation']);
+                                    $dateFin = new DateTime($row['Date_Fin_Cotisation']);
                                     $aujourdhui = new DateTime();
-                                    
+
                                     $totalDays = $dateFin->diff($dateDebut)->days ?: 1;
                                     $daysPassed = $aujourdhui->diff($dateDebut)->invert ? $aujourdhui->diff($dateDebut)->days : 0;
                                     $percentage = min(100, max(0, ($daysPassed / $totalDays) * 100));
-                                    
+
+                                    $alerteBadge = '';
                                     if ($percentage >= 70 && $percentage < 100 && $aujourdhui <= $dateFin) {
-                                        $totalBeneficiaires++;
+                                        $alerteBadge = '<i class="bi bi-exclamation-triangle-fill text-warning blink"></i>';
                                     }
+
+                                    // 👉 Filtrer uniquement les alertes si demandé
+                                    if ($filtreEtat === 'Alerte') {
+                                        if (!($percentage >= 70 && $percentage < 100 && $aujourdhui <= $dateFin)) {
+                                            continue;
+                                        }
+                                    }
+
+                                    $statusClass = match ($row['Etat_Cotisation']) {
+                                        'Actif'    => 'badge-active',
+                                        'À venir'  => 'bg-warning',
+                                        'Expiré'   => 'badge-expired',
+                                        default    => 'badge-secondary'
+                                    };
+                                    
+                                    echo "<tr>
+                                            <td><input type='checkbox' class='select-beneficiaire' name='beneficiaires[]' value='" . $row['id'] . "'></td>
+                                            <td>{$row['Date_Enreg']}</td>
+                                            <td>{$row['Code_Immatriculation']}</td>
+                                            <td>{$row['Nom']} {$row['Prenom']}</td>
+                                            <td>{$row['Telephone']}</td>
+                                            <!-- <td>{$row['Regime']}</td> -->
+                                            <td>{$row['Type_Beneficiaire']}</td>
+                                            <td><span class='badge-status $statusClass'>{$row['Etat_Cotisation']} $alerteBadge</span></td>
+                                            <td class='action-buttons'>
+                                                <a href='detail_web.php?code={$row['Code_Immatriculation']}' class='btn btn-sm btn-success' title='Détails'>
+                                                    <i class='bi bi-eye'></i>
+                                                </a>
+                                                <a href='modifbeneficiaire.php?code={$row['Code_Immatriculation']}' class='btn btn-sm btn-warning' title='Modifier'>
+                                                    <i class='bi bi-pencil'></i>
+                                                </a>
+                                                <a href='codeqr.php?code={$row['Code_Immatriculation']}' class='btn btn-sm btn-info' title='QR Code'>
+                                                    <i class='bi bi-qr-code'></i>
+                                                </a>
+                                                <a href='#' 
+                                                    class='btn btn-sm btn-danger delete-btn' 
+                                                    data-bs-toggle='modal'
+                                                    data-bs-target='#confirmModal'
+                                                    data-code='{$row['Code_Immatriculation']}'
+                                                    title='Supprimer'>
+                                                    <i class='bi bi-trash'></i>
+                                                </a>
+                                            
+                                            </td>
+                                        </tr>";
                                 }
-                            } else {
-                                $sqlCount .= " WHERE Etat_Cotisation = ?";
-                                $paramsCount[] = $filtreEtat;
-                                $stmtCount = $pdo->prepare($sqlCount);
-                                $stmtCount->execute($paramsCount);
-                                $totalBeneficiaires = $stmtCount->fetchColumn();
-                            }
-                        } else {
-                            // Aucun filtre d'état
-                            $stmtCount = $pdo->prepare($sqlCount);
-                            $stmtCount->execute($paramsCount);
-                            $totalBeneficiaires = $stmtCount->fetchColumn();
-                        }
-                        ?>
-
-
-                        <span class="badge bg-primary">
-                            <?= $totalBeneficiaires ?> bénéficiaire<?= $totalBeneficiaires > 1 ? 's' : '' ?>
-                        </span>
+                                ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table id="beneficiairesTable" class="table table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th> <input type="checkbox" id="selectAll"> </th>
-                                <th>Date Enregistrement</th>
-                                <th>Code</th>
-                                <th>Nom & Prénom</th>
-                                <th>Téléphone</th>
-                               <!--  <th>Régime</th> -->
-                                <th>Type Bénéficiaire</th>
-                                <th>Statut</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            $sql = "SELECT * FROM (
-                            SELECT *, 
-                                (CASE 
-                                    WHEN Date_Cotisation > CURDATE() THEN 'À venir'
-                                    WHEN Date_Cotisation <= CURDATE() AND Date_Fin_Cotisation >= CURDATE() THEN 'Actif'
-                                    ELSE 'Expiré'
-                                END) as Etat_Cotisation 
-                            FROM beneficiaires
-                            WHERE 1=1";
-                            
-                            $params = [];
-                            if (!empty($filtreType)) {
-                                $sql .= " AND Type_Beneficiaire = ?";
-                                $params[] = $filtreType;
-                            }
-                            if (!empty($filtreRegime)) {
-                                $sql .= " AND Regime = ?";
-                                $params[] = $filtreRegime;
-                            }
-                            if (!empty($filtreNom)) {
-                                $sql .= " AND (Nom LIKE ? OR Prenom LIKE ?)";
-                                $params[] = "%$filtreNom%";
-                                $params[] = "%$filtreNom%";
-                            }
-                            if (!empty($filtreCode)) {
-                                $sql .= " AND Code_Immatriculation LIKE ?";
-                                $params[] = "%$filtreCode%";
-                            }
-                            if (!empty($filtreGroupe)) {
-                                $sql .= " AND Groupe = ?";
-                                $params[] = $filtreGroupe;
-                            }
-                            if (!empty($filtreDateDebut)) {
-                                $sql .= " AND Date_Enreg >= ?";
-                                $params[] = $filtreDateDebut;
-                            }
-                            if (!empty($filtreDateFin)) {
-                                $sql .= " AND Date_Enreg <= ?";
-                                $params[] = $filtreDateFin;
-                            }
-                          $sql .= ") AS sub";
-
-                            if (!empty($filtreEtat) && $filtreEtat !== 'Alerte') {
-                                $sql .= " WHERE Etat_Cotisation = ?";
-                                $params[] = $filtreEtat;
-                            }
-
-
-                            $stmt = $pdo->prepare($sql);
-                            $stmt->execute($params);
-                            
-                       while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-
-                        $dateDebut = new DateTime($row['Date_Cotisation']);
-                        $dateFin = new DateTime($row['Date_Fin_Cotisation']);
-                        $aujourdhui = new DateTime();
-
-                        $totalDays = $dateFin->diff($dateDebut)->days ?: 1;
-                        $daysPassed = $aujourdhui->diff($dateDebut)->invert ? $aujourdhui->diff($dateDebut)->days : 0;
-                        $percentage = min(100, max(0, ($daysPassed / $totalDays) * 100));
-
-                        $alerteBadge = '';
-                        if ($percentage >= 70 && $percentage < 100 && $aujourdhui <= $dateFin) {
-                            $alerteBadge = '<i class="bi bi-exclamation-triangle-fill text-warning blink"></i>';
-                        }
-
-                        // 👉 Filtrer uniquement les alertes si demandé
-                        if ($filtreEtat === 'Alerte') {
-                            if (!($percentage >= 70 && $percentage < 100 && $aujourdhui <= $dateFin)) {
-                                continue;
-                            }
-                        }
-
-                        $statusClass = match ($row['Etat_Cotisation']) {
-                            'Actif'    => 'badge-active',
-                            'À venir'  => 'bg-warning',
-                            'Expiré'   => 'badge-expired',
-                            default    => 'badge-secondary'
-                        };
-                        
-                echo "<tr data-id='" . $row['id'] . "'>
-                    <td><input type='checkbox' class='select-beneficiaire' name='beneficiaires[]' value='" . $row['id'] . "'></td>
-                                        <td>{$row['Date_Enreg']}</td>
-                                        <td>{$row['Code_Immatriculation']}</td>
-                                        <td>{$row['Nom']} {$row['Prenom']}</td>
-                                        <td>{$row['Telephone']}</td>
-                                        <!-- <td>{$row['Regime']}</td> -->
-                                        <td>{$row['Type_Beneficiaire']}</td>
-                                        <td><span class='badge-status $statusClass'>{$row['Etat_Cotisation']} $alerteBadge</span></td>
-                                        <td class='action-buttons'>
-                                            <a href='detail_web.php?code={$row['Code_Immatriculation']}' class='btn btn-sm btn-success' title='Détails'>
-                                                <i class='bi bi-eye'></i>
-                                            </a>
-                                            <a href='modifbeneficiaire.php?code={$row['Code_Immatriculation']}' class='btn btn-sm btn-warning' title='Modifier'>
-                                                <i class='bi bi-pencil'></i>
-                                            </a>
-                                            <a href='codeqr.php?code={$row['Code_Immatriculation']}' class='btn btn-sm btn-info' title='QR Code'>
-                                                <i class='bi bi-qr-code'></i>
-                                            </a>
-                                            <a href='#' 
-                                                class='btn btn-sm btn-danger delete-btn' 
-                                                data-bs-toggle='modal'
-                                                data-bs-target='#confirmModal'
-                                                data-code='{$row['Code_Immatriculation']}'
-                                                title='Supprimer'>
-                                                <i class='bi bi-trash'></i>
-                                            </a>
-                                           
-                                        </td>
-                                    </tr>";
-                            }
-                            ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
-    </div>
 
   
 
 
-<!-- Modal de modification collective -->
-<div class="modal fade" id="modalModification" tabindex="-1" aria-labelledby="modalModificationLabel" aria-hidden="true" >
-  <div class="modal-dialog modal-lg">
-    <form method="POST" action="modificationcollective.php" id="formModification" enctype="multipart/form-data">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalModificationLabel">Modification collective</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" name="ids" id="selectedIds">
-           <div class="row">
-                <!-- Région -->
-                <div class="col-md-6 mb-3">
-                    <label for="region" class="form-label">Région</label>
-                        <select id="region" name="Region" class="form-select" onchange="chargerDepartements()">
-                            <option value="">-- Choisissez une région --</option>
-                        </select>
-                </div>
-                <!-- Département -->
-                <div class="col-md-6 mb-3">
-                    <label for="departement"  class="form-label">Département</label>
-                        <select id="departement" class="form-select" name="Departement" onchange="chargerCommunes()">
-                            <option value="">-- Choisissez un département --</option>
-                        </select>
-                </div>
-                <!-- Commune -->
-                <div class="col-md-6 mb-3">
-                    <label for="commune" class="form-label">Commune</label>
-                        <select id="commune" name="Commune" class="form-select">
-                            <option value="">-- Choisissez une commune --</option>
-                        </select>
-                </div>
-
-               <div class="col-md-6 mb-3">
-                  
-                </div>
-                            
-                <div class="col-md-6 mb-3">
-                    <label for="type_adhesion" class="form-label">Type d'Adhésion</label>
-                        <select name="type_adhesion" id="type_adhesion" class="form-select">
-                            <option value="">-- Sélectionnez un type --</option>
-                            <option value="Individuelle">Individuelle</option>
-                            <option value="Familiale">Familiale</option>
-                            <option value="Groupe">Groupe</option>
-                            <option value="Adhesion Systematique">Adhésion Systématique</option>
-                        </select>
-                </div>
-                            
-                <div class="col-md-6 mb-3">
-                    <label for="assureur" class="form-label">Assureur</label>
-                        <select name="assureur" id="assureur" class="form-select">
-                            <option value="">-- Sélectionnez un assureur --</option>
-                            <option value="SENCSU">SENCSU</option>
-                            <option value="SOURA">SOURA</option>
-                            <option value="MSD">MSD</option>
-                        </select>
-                </div>
-                            
-                
-                 <div class=" col-md-6 mb-3">
-                    <label for="regime" class="form-label">Régime</label>
-                                <select name="regime" id="regimeModal" class="form-select" onchange="mettreAJourTypesModal()">
-                                    <option value="">-- Sélectionnez un régime --</option>
-                                    <option value="Contributif">Contributif</option>
-                                    <option value="Non Contributif">Non Contributif</option>
-                                </select>
-                </div>
-                <div class=" col-md-6 mb-3">
-                    <label for="type_beneficiaire" class="form-label">Type de Bénéficiaire</label>
-                                <select name="type_beneficiaire" id="type_beneficiaireModal" class="form-select">
-                                    <option value="">-- Sélectionnez un type --</option>
-                                </select>
-                </div>
-                            
-                <div class="col-md-6 mb-3">
-                    <label for="groupe" class="form-label">Groupe d'Appartenance</label>
-                            <input type="text" name="groupe" id="groupe" class="form-control">
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label for="type_cotisation" class="form-label">Type de Cotisation</label>
-                        <select name="type_cotisation" id="type_cotisation" class="form-select">
-                            <option value="">-- Sélectionnez --</option>
-                            <option value="Annuelle">Annuelle</option>
-                            <option value="Subventionne">Subventionné</option>
-                            <option value="Semestrielle">Semestrielle</option>
-                        </select>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label for="date_cotisation" class="form-label">Date de Cotisation</label>
-                        <input type="date" name="date_cotisation" id="date_cotisation" class="form-control" >
-                </div>
-                           
-                <div class="col-md-6 mb-3">
-                    <label for="date_fin_cotisation" class="form-label">Date de Fin de Cotisation</label>
-                    <input type="date" name="date_fin_cotisation" id="date_fin_cotisation" class="form-control readonly-field" readonly>
-                </div>
-
-                <!--div class="col-md-12 ">
-                    <label for="photos" class="form-label">Photos</label>
-                    <input type="file" name="photo[]" id="photo" class="form-control" accept="image/*" multiple>
-                    <small class="text-muted">
-                        Le nom de chaque photo doit correspondre à l'ID du bénéficiaire (ex: <code>15.jpg</code>, <code>42.png</code>)
-                    </small>
-                </!--div-->
-
-            </div>
-          <!-- Ajoute d'autres champs si besoin -->
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-          <button type="submit" class="btn btn-primary">Appliquer les modifications</button>
-        </div>
-      </div>
-    </form>
-  </div>
-</div>
-
-  
-
-<!-- Modal de confirmation de suppression -->
-<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <!-- Modal de modification collective -->
+    <div class="modal fade" id="modalModification" tabindex="-1" aria-labelledby="modalModificationLabel" aria-hidden="true" >
+    <div class="modal-dialog modal-lg">
+        <form method="POST" action="modificationcollective.php" id="formModification" enctype="multipart/form-data">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="confirmModalLabel">Confirmation de suppression</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <h5 class="modal-title" id="modalModificationLabel">Modification collective</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <div class="modal-body">
-                Êtes-vous sûr de vouloir supprimer ce bénéficiaire ? Cette action est irréversible.
+            <input type="hidden" name="ids" id="selectedIds">
+            <div class="row">
+                    <!-- Région -->
+                    <div class="col-md-6 mb-3">
+                        <label for="region" class="form-label">Région</label>
+                            <select id="region" name="Region" class="form-select" onchange="chargerDepartements()">
+                                <option value="">-- Choisissez une région --</option>
+                            </select>
+                    </div>
+                    <!-- Département -->
+                    <div class="col-md-6 mb-3">
+                        <label for="departement"  class="form-label">Département</label>
+                            <select id="departement" class="form-select" name="Departement" onchange="chargerCommunes()">
+                                <option value="">-- Choisissez un département --</option>
+                            </select>
+                    </div>
+                    <!-- Commune -->
+                    <div class="col-md-6 mb-3">
+                        <label for="commune" class="form-label">Commune</label>
+                            <select id="commune" name="Commune" class="form-select">
+                                <option value="">-- Choisissez une commune --</option>
+                            </select>
+                    </div>
+
+                <div class="col-md-6 mb-3">
+                    
+                    </div>
+                                
+                    <div class="col-md-6 mb-3">
+                        <label for="type_adhesion" class="form-label">Type d'Adhésion</label>
+                            <select name="type_adhesion" id="type_adhesion" class="form-select">
+                                <option value="">-- Sélectionnez un type --</option>
+                                <option value="Individuelle">Individuelle</option>
+                                <option value="Familiale">Familiale</option>
+                                <option value="Groupe">Groupe</option>
+                                <option value="Adhesion Systematique">Adhésion Systématique</option>
+                            </select>
+                    </div>
+                                
+                    <div class="col-md-6 mb-3">
+                        <label for="assureur" class="form-label">Assureur</label>
+                            <select name="assureur" id="assureur" class="form-select">
+                                <option value="">-- Sélectionnez un assureur --</option>
+                                <option value="SENCSU">SENCSU</option>
+                                <option value="SOURA">SOURA</option>
+                                <option value="MSD">MSD</option>
+                            </select>
+                    </div>
+                                
+                    
+                    <div class=" col-md-6 mb-3">
+                        <label for="regime" class="form-label">Régime</label>
+                                    <select name="regime" id="regimeModal" class="form-select" onchange="mettreAJourTypesModal()">
+                                        <option value="">-- Sélectionnez un régime --</option>
+                                        <option value="Contributif">Contributif</option>
+                                        <option value="Non Contributif">Non Contributif</option>
+                                    </select>
+                    </div>
+                    <div class=" col-md-6 mb-3">
+                        <label for="type_beneficiaire" class="form-label">Type de Bénéficiaire</label>
+                                    <select name="type_beneficiaire" id="type_beneficiaireModal" class="form-select">
+                                        <option value="">-- Sélectionnez un type --</option>
+                                    </select>
+                    </div>
+                                
+                    <div class="col-md-6 mb-3">
+                        <label for="groupe" class="form-label">Groupe d'Appartenance</label>
+                                <input type="text" name="groupe" id="groupe" class="form-control">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="type_cotisation" class="form-label">Type de Cotisation</label>
+                            <select name="type_cotisation" id="type_cotisation" class="form-select">
+                                <option value="">-- Sélectionnez --</option>
+                                <option value="Annuelle">Annuelle</option>
+                                <option value="Subventionne">Subventionné</option>
+                                <option value="Semestrielle">Semestrielle</option>
+                            </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="date_cotisation" class="form-label">Date de Cotisation</label>
+                            <input type="date" name="date_cotisation" id="date_cotisation" class="form-control" >
+                    </div>
+                            
+                    <div class="col-md-6 mb-3">
+                        <label for="date_fin_cotisation" class="form-label">Date de Fin de Cotisation</label>
+                        <input type="date" name="date_fin_cotisation" id="date_fin_cotisation" class="form-control readonly-field" readonly>
+                    </div>
+
+                    <!--div class="col-md-12 ">
+                        <label for="photos" class="form-label">Photos</label>
+                        <input type="file" name="photo[]" id="photo" class="form-control" accept="image/*" multiple>
+                        <small class="text-muted">
+                            Le nom de chaque photo doit correspondre à l'ID du bénéficiaire (ex: <code>15.jpg</code>, <code>42.png</code>)
+                        </small>
+                    </!--div-->
+
+                </div>
+            <!-- Ajoute d'autres champs si besoin -->
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-danger" id="confirmDelete">Supprimer</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-primary">Appliquer les modifications</button>
+            </div>
+        </div>
+        </form>
+    </div>
+    </div>
+
+    
+
+    <!-- Modal de confirmation de suppression -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmModalLabel">Confirmation de suppression</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Êtes-vous sûr de vouloir supprimer ce bénéficiaire ? Cette action est irréversible.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete">Supprimer</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-    <!-- Scripts -->
-    <!-- Dans votre section scripts -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-
-
-<script>
-document.addEventListener('DOMContentLoaded', function () 
-{
-    const typeCotisation = document.getElementById('type_cotisation');
-    const dateCotisation = document.getElementById('date_cotisation');
-    const dateFinCotisation = document.getElementById('date_fin_cotisation');
-
-    const regimeSelect = document.getElementById("regimeModal");
-    const typeSelect = document.getElementById("type_beneficiaireModal");
-
-    // Valeur injectée depuis PHP (mode édition si applicable)
-    const selectedType = "<?= isset($beneficiaire['type_beneficiaire']) ? htmlspecialchars($beneficiaire['type_beneficiaire']) : '' ?>";
-    const selectedRegime = "<?= isset($beneficiaire['regime']) ? htmlspecialchars($beneficiaire['regime']) : '' ?>";
-
-    function mettreAJourTypesModal() {   
-        const regimeValue = regimeSelect.value;
-        let options = [];
-
-        if (regimeValue === "Contributif") {
-            options = ["CLASSIQUE", "CMU-ELEVE", "CMU-DAARA"];
-        } else if (regimeValue === "Non Contributif") {
-            options = ["PLAN SESAME", "FEMME ENCEINTE", "ENFANT 0-5ANS", "MENAGE BSF", "TITULAIRE CEC"];
-        }
-
-        // Vider et ajouter les options
-        typeSelect.innerHTML = '<option value="">-- Sélectionnez un type --</option>';
-        options.forEach(value => {
-            const opt = document.createElement("option");
-            opt.value = value;
-            opt.textContent = value;
-            typeSelect.appendChild(opt);
-        });
-
-        // Repositionner si déjà sélectionné
-        if (selectedType && regimeValue === selectedRegime) {
-            typeSelect.value = selectedType;
-        }
-    }
-
-    // Auto-remplir si déjà sélectionné
-    if (selectedRegime) {
-        regimeSelect.value = selectedRegime;
-        mettreAJourTypesModal();
-    }
-    regimeSelect.addEventListener('change', mettreAJourTypesModal);
-
-    // 📅 Mise à jour automatique de la date de fin de cotisation
-    function updateDateFin() {
-        const type = typeCotisation.value;
-        const dateStr = dateCotisation.value;
-
-        if (type && dateStr) {
-            const date = new Date(dateStr);
-
-            if (type === 'Annuelle' || type === 'Subventionne') {
-                date.setFullYear(date.getFullYear() + 1);
-            } else if (type === 'Semestrielle') {
-                date.setMonth(date.getMonth() + 6);
-            }
-
-            const yyyy = date.getFullYear();
-            const mm = String(date.getMonth() + 1).padStart(2, '0');
-            const dd = String(date.getDate()).padStart(2, '0');
-
-            dateFinCotisation.value = `${yyyy}-${mm}-${dd}`;
-        } else {
-            dateFinCotisation.value = '';
-        }
-    }
-
-    typeCotisation.addEventListener('change', updateDateFin);
-    dateCotisation.addEventListener('change', updateDateFin);
-
-    // 🧾 Validation du formulaire
-    document.getElementById('formModification').addEventListener('submit', function(e) {
-        let isValid = true;
-
-     //   document.querySelectorAll('[required]').forEach(field => {
-       //     if (!field.value.trim()) {
-         //       isValid = false;
-           //     field.classList.add('is-invalid');
-           // } else {
-             //   field.classList.remove('is-invalid');
-           // }
-        //});
-
-        //if (!isValid) {
-          //  e.preventDefault();
-            //Swal.fire({
-              //  icon: 'error',
-               // title: 'Champs obligatoires manquants',
-                //text: 'Veuillez remplir tous les champs obligatoires marqués d\'un astérisque (*)',
-                //confirmButtonColor: '#2c3e50'
-           // });
-       // }
-    //});
-});
-</script>
-
-
-
-    <script>
-   
-       // $(document).ready(function() {
-        //     // Initialisation DataTable
-        //     $('#beneficiairesTable').DataTable({
-        //         language: {
-        //             url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
-        //         },
-        //         responsive: true,
-        //         dom: '<"top"f>rt<"bottom"lip><"clear">',
-        //         pageLength: 10,
-        //         lengthMenu: [5, 10, 25, 50, 100]
-        //     });
-        //
-        //     // Gestion de la suppression
-        //     
-        //             let deleteCode = '';
-        //             
-        //             // Lorsqu'on clique sur un bouton de suppression
-        //             $(document).on('click', '.delete-btn', function() {
-        //                 deleteCode = $(this).data('code');
-        //             });
-        //             
-        //             // Confirmation de suppression
-        //             $('#confirmDelete').click(function() {
-        //                 if (deleteCode) {
-        //                     window.location.href = 'supprimerbeneficiaire.php?code=' + deleteCode;
-        //                 }
-        //             });
-        //     
-        //     // Gestion des alertes
-        //     <?php if ($message): ?>
-        //     Swal.fire({
-        //         position: 'top-end',
-        //         icon: 'success',
-        //         title: 'Bénéficiaire ajouté avec succès',
-        //         showConfirmButton: false,
-        //         timer: 1500
-        //     });
-        //     <?php endif; ?>
-        // });
+        <!-- Scripts -->
+        <!-- Dans votre section scripts -->
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         
-        
-        // Export avancé
-        // Gestion du bouton Exporter : exporte la sélection si elle existe, sinon le filtré
-        document.getElementById('exportBtn').addEventListener('click', function() {
-            // Utilise selectedIds du script de sélection globale
-            var selectedIds = window.selectedIds || [];
-            if (typeof selectedIds === 'undefined') {
-                // Récupère depuis DataTable si non global
-                selectedIds = [];
-                if (window.table) {
-                    window.table.rows({ search: 'applied' }).every(function() {
+
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () 
+            {
+                    const typeCotisation = document.getElementById('type_cotisation');
+                    const dateCotisation = document.getElementById('date_cotisation');
+                    const dateFinCotisation = document.getElementById('date_fin_cotisation');
+
+                    const regimeSelect = document.getElementById("regimeModal");
+                    const typeSelect = document.getElementById("type_beneficiaireModal");
+
+                    // Valeur injectée depuis PHP (mode édition si applicable)
+                    const selectedType = "<?= isset($beneficiaire['type_beneficiaire']) ? htmlspecialchars($beneficiaire['type_beneficiaire']) : '' ?>";
+                    const selectedRegime = "<?= isset($beneficiaire['regime']) ? htmlspecialchars($beneficiaire['regime']) : '' ?>";
+
+                    function mettreAJourTypesModal() 
+                    {   
+                        const regimeValue = regimeSelect.value;
+                        let options = [];
+
+                        if (regimeValue === "Contributif") {
+                            options = ["CLASSIQUE", "CMU-ELEVE", "CMU-DAARA"];
+                        } else if (regimeValue === "Non Contributif") {
+                            options = ["PLAN SESAME", "FEMME ENCEINTE", "ENFANT 0-5ANS", "MENAGE BSF", "TITULAIRE CEC"];
+                        }
+
+                        // Vider et ajouter les options
+                        typeSelect.innerHTML = '<option value="">-- Sélectionnez un type --</option>';
+                        options.forEach(value => {
+                            const opt = document.createElement("option");
+                            opt.value = value;
+                            opt.textContent = value;
+                            typeSelect.appendChild(opt);
+                        });
+
+                        // Repositionner si déjà sélectionné
+                        if (selectedType && regimeValue === selectedRegime) {
+                            typeSelect.value = selectedType;
+                        }
+                    }
+
+                    // Auto-remplir si déjà sélectionné
+                    if (selectedRegime) 
+                    {
+                        regimeSelect.value = selectedRegime;
+                        mettreAJourTypesModal();
+                    }
+                    regimeSelect.addEventListener('change', mettreAJourTypesModal);
+
+                    // 📅 Mise à jour automatique de la date de fin de cotisation
+                    function updateDateFin() 
+                    {
+                        const type = typeCotisation.value;
+                        const dateStr = dateCotisation.value;
+
+                        if (type && dateStr) {
+                            const date = new Date(dateStr);
+
+                            if (type === 'Annuelle' || type === 'Subventionne') {
+                                date.setFullYear(date.getFullYear() + 1);
+                            } else if (type === 'Semestrielle') {
+                                date.setMonth(date.getMonth() + 6);
+                            }
+
+                            const yyyy = date.getFullYear();
+                            const mm = String(date.getMonth() + 1).padStart(2, '0');
+                            const dd = String(date.getDate()).padStart(2, '0');
+
+                            dateFinCotisation.value = `${yyyy}-${mm}-${dd}`;
+                        } else {
+                            dateFinCotisation.value = '';
+                        }
+                    }
+
+                    typeCotisation.addEventListener('change', updateDateFin);
+                    dateCotisation.addEventListener('change', updateDateFin);
+
+                    // 🧾 Validation du formulaire
+                    document.getElementById('formModification').addEventListener('submit', function(e) 
+                    {
+                        let isValid = true;
+
+                        //   document.querySelectorAll('[required]').forEach(field => {
+                        //     if (!field.value.trim()) {
+                            //       isValid = false;
+                            //     field.classList.add('is-invalid');
+                            // } else {
+                                //   field.classList.remove('is-invalid');
+                            // }
+                            //});
+
+                            //if (!isValid) {
+                            //  e.preventDefault();
+                                //Swal.fire({
+                                //  icon: 'error',
+                                // title: 'Champs obligatoires manquants',
+                                    //text: 'Veuillez remplir tous les champs obligatoires marqués d\'un astérisque (*)',
+                                    //confirmButtonColor: '#2c3e50'
+                            // });
+                        // }
+                        //});
+                    });
+            });
+        </script>
+
+        <!-- selection --->
+        <script>
+            $(document).ready(function() 
+            {
+                // Initialisation DataTable une seule fois et accessible globalement
+                if (!window.table) {
+                    window.table = $('#beneficiairesTable').DataTable({
+                        language: {
+                            url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
+                        },
+                        responsive: true,
+                        dom: '<"top"f>rt<"bottom"lip><"clear">',
+                        pageLength: 10,
+                        lengthMenu: [5, 10, 25, 50, 100]
+                    });
+                }
+
+                // Tableau pour stocker les IDs sélectionnés globalement
+                if (!window.selectedIds) window.selectedIds = [];
+                var selectedIds = window.selectedIds;
+                var table = window.table;
+
+                // Fonction pour obtenir tous les IDs du tableau (même ceux non affichés)
+                function getAllIds() {
+                    var ids = [];
+                    table.rows({ search: 'applied' }).every(function() {
                         var row = this.node();
                         var checkbox = $(row).find('.select-beneficiaire');
-                        if (checkbox.length && checkbox.is(':checked')) {
-                            selectedIds.push(checkbox.val());
+                        if (checkbox.length) {
+                            ids.push(checkbox.val());
                         }
                     });
+                    return ids;
                 }
-            }
-        var selectedIds = window.selectedIds || [];
-        if (!Array.isArray(selectedIds)) selectedIds = [];
-            Swal.fire({
-                title: 'Options d\'export',
-                html: `
-                    <div class="mb-3">
-                        <label class="form-label">Format</label>
-                        <select class="form-select" id="exportFormat">
-                            <option value="excel">Excel</option>
-                            <option value="csv">CSV</option>
-                            <option value="pdf">PDF</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Colonnes à inclure</label>
-                        <select class="form-select" id="exportColumns" multiple>
-                            <option value="code" selected>Code</option>
-                            <option value="nom" selected>Nom</option>
-                            <option value="telephone" selected>Téléphone</option>
-                            <option value="regime" selected>Régime</option>
-                            <option value="type" selected>Type</option>
-                            <option value="adresse">Adresse</option>
-                            <option value="date_cotisation">Date cotisation</option>
-                            <option value="date_fin">Date fin</option>
-                        </select>
-                    </div>
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Exporter',
-                cancelButtonText: 'Annuler',
-                preConfirm: () => {
-                    const format = document.getElementById('exportFormat').value;
-                    const columns = Array.from(document.getElementById('exportColumns').selectedOptions)
-                                        .map(opt => opt.value);
-                    if (selectedIds && selectedIds.length > 0) {
-                        // Exporter uniquement la sélection
-                        // Envoie en GET (ou POST si besoin)
-                        const url = `exporterliste.php?format=${format}&columns=${columns.join(',')}&ids=${encodeURIComponent(JSON.stringify(selectedIds))}`;
-                        window.location.href = url;
+
+                // Initialisation robuste de la sélection globale
+                window.selectedIds = window.selectedIds || [];
+
+                // Sélection/désélection de tous les visibles (Select All)
+                $('#selectAll').on('click', function() {
+                    // Sécurise window.selectedIds comme tableau
+                    if (!Array.isArray(window.selectedIds)) {
+                        try {
+                            window.selectedIds = JSON.parse(window.selectedIds);
+                            if (!Array.isArray(window.selectedIds)) window.selectedIds = [];
+                        } catch(e) { window.selectedIds = []; }
+                    }
+                    var isChecked = $(this).is(':checked');
+                    // Utilise DataTables pour récupérer tous les IDs filtrés (même non visibles)
+                    var allIds = [];
+                    table.rows({ search: 'applied' }).every(function() {
+                        var row = this.node();
+                        var checkbox = $(row).find('.select-beneficiaire');
+                        if (checkbox.length) {
+                            allIds.push(checkbox.val());
+                        }
+                    });
+                    if (isChecked) {
+                        allIds.forEach(function(id) {
+                            if (!window.selectedIds.includes(id)) window.selectedIds.push(id);
+                        });
                     } else {
-                        // Exporter le filtré (comportement actuel)
-                        const url = `<?= htmlspecialchars($exportUrl) ?>`;
-                        // Ajoute les options d'export
-                        const sep = url.includes('?') ? '&' : '?';
-                        window.location.href = `${url}${sep}format=${format}&columns=${columns.join(',')}`;
+                        window.selectedIds = window.selectedIds.filter(function(id) {
+                            return !allIds.includes(id);
+                        });
                     }
-                }
-            });
-        });
-
-    </script>
-
-     <!-- selection --->
-    <script>
-        $(document).ready(function() {
-            // Initialisation DataTable une seule fois et accessible globalement
-            if (!window.table) {
-                window.table = $('#beneficiairesTable').DataTable({
-                    language: {
-                        url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
-                    },
-                    responsive: true,
-                    dom: '<"top"f>rt<"bottom"lip><"clear">',
-                    pageLength: 10,
-                    lengthMenu: [5, 10, 25, 50, 100]
+                    // Met à jour l'affichage des cases à cocher visibles
+                    $('.select-beneficiaire').each(function() {
+                        var id = $(this).val();
+                        $(this).prop('checked', window.selectedIds.includes(id));
+                    });
                 });
-            }
 
-            // Tableau pour stocker les IDs sélectionnés globalement
-            if (!window.selectedIds) window.selectedIds = [];
-            var selectedIds = window.selectedIds;
-            var table = window.table;
-
-            // Fonction pour obtenir tous les IDs du tableau (même ceux non affichés)
-            function getAllIds() {
-                var ids = [];
-                table.rows({ search: 'applied' }).every(function() {
-                    var row = this.node();
-                    var checkbox = $(row).find('.select-beneficiaire');
-                    if (checkbox.length) {
-                        ids.push(checkbox.val());
+                // Sélection individuelle
+                $(document).on('change', '.select-beneficiaire', function() {
+                    // Sécurise window.selectedIds comme tableau
+                    if (!Array.isArray(window.selectedIds)) {
+                        try {
+                            window.selectedIds = JSON.parse(window.selectedIds);
+                            if (!Array.isArray(window.selectedIds)) window.selectedIds = [];
+                        } catch(e) { window.selectedIds = []; }
                     }
-                });
-                return ids;
-            }
-
-            // Initialisation robuste de la sélection globale
-            window.selectedIds = window.selectedIds || [];
-
-            // Sélection/désélection de tous les visibles (Select All)
-            $('#selectAll').on('click', function() {
-                // Sécurise window.selectedIds comme tableau
-                if (!Array.isArray(window.selectedIds)) {
-                    try {
-                        window.selectedIds = JSON.parse(window.selectedIds);
-                        if (!Array.isArray(window.selectedIds)) window.selectedIds = [];
-                    } catch(e) { window.selectedIds = []; }
-                }
-                var isChecked = $(this).is(':checked');
-                // Utilise DataTables pour récupérer tous les IDs filtrés (même non visibles)
-                var allIds = [];
-                table.rows({ search: 'applied' }).every(function() {
-                    var row = this.node();
-                    var checkbox = $(row).find('.select-beneficiaire');
-                    if (checkbox.length) {
-                        allIds.push(checkbox.val());
-                    }
-                });
-                if (isChecked) {
-                    allIds.forEach(function(id) {
+                    var id = $(this).val();
+                    if ($(this).is(':checked')) {
                         if (!window.selectedIds.includes(id)) window.selectedIds.push(id);
+                    } else {
+                        window.selectedIds = window.selectedIds.filter(function(item) { return item !== id; });
+                    }
+                    // Met à jour l'état du Select All pour la page courante
+                    var allChecked = $('.select-beneficiaire').length > 0 && $('.select-beneficiaire').toArray().every(function(cb) {
+                        return window.selectedIds.includes($(cb).val());
                     });
-                } else {
-                    window.selectedIds = window.selectedIds.filter(function(id) {
-                        return !allIds.includes(id);
+                    $('#selectAll').prop('checked', allChecked);
+                });
+
+                // Restauration de l'état des cases à chaque draw/page
+                table.on('draw', function() {
+                    // Sécurise window.selectedIds comme tableau
+                    if (!Array.isArray(window.selectedIds)) {
+                        try {
+                            window.selectedIds = JSON.parse(window.selectedIds);
+                            if (!Array.isArray(window.selectedIds)) window.selectedIds = [];
+                        } catch(e) { window.selectedIds = []; }
+                    }
+                    $('.select-beneficiaire').each(function() {
+                        var id = $(this).val();
+                        $(this).prop('checked', window.selectedIds.includes(id));
                     });
-                }
-                // Met à jour l'affichage des cases à cocher visibles
-                $('.select-beneficiaire').each(function() {
-                    var id = $(this).val();
-                    $(this).prop('checked', window.selectedIds.includes(id));
+                    var allChecked = $('.select-beneficiaire').length > 0 && $('.select-beneficiaire').toArray().every(function(cb) {
+                        return window.selectedIds.includes($(cb).val());
+                    });
+                    $('#selectAll').prop('checked', allChecked);
+                });
+
+                // Gestion du bouton de modification collective
+                document.getElementById('btnModifierSelection').addEventListener('click', function () 
+                {
+                    if (window.selectedIds.length === 0) 
+                    {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Aucun bénéficiaire sélectionné',
+                            text: 'Veuillez sélectionner au moins un bénéficiaire.',
+                            confirmButtonText: 'OK'
+                        });
+                        return;
+                    }
+                    document.getElementById('selectedIds').value = JSON.stringify(window.selectedIds);
+                    const modal = new bootstrap.Modal(document.getElementById('modalModification'));
+                    modal.show();
                 });
             });
+        </script>
+        <!-- region departement commune -->
+        <script>
+                let dataSenegal = {};
 
-            // Sélection individuelle
-            $(document).on('change', '.select-beneficiaire', function() {
-                // Sécurise window.selectedIds comme tableau
-                if (!Array.isArray(window.selectedIds)) {
-                    try {
-                        window.selectedIds = JSON.parse(window.selectedIds);
-                        if (!Array.isArray(window.selectedIds)) window.selectedIds = [];
-                    } catch(e) { window.selectedIds = []; }
-                }
-                var id = $(this).val();
-                if ($(this).is(':checked')) {
-                    if (!window.selectedIds.includes(id)) window.selectedIds.push(id);
-                } else {
-                    window.selectedIds = window.selectedIds.filter(function(item) { return item !== id; });
-                }
-                // Met à jour l'état du Select All pour la page courante
-                var allChecked = $('.select-beneficiaire').length > 0 && $('.select-beneficiaire').toArray().every(function(cb) {
-                    return window.selectedIds.includes($(cb).val());
-                });
-                $('#selectAll').prop('checked', allChecked);
-            });
+                window.onload = function () 
+                {
+                    // Charger le fichier JSON
+                    fetch("regions_departements_communes_senegal.json")
+                        .then((res) => res.json())
+                        .then((data) => {
+                        dataSenegal = data;
+                        remplirRegions();
+                        });
+                };
 
-            // Restauration de l'état des cases à chaque draw/page
-            table.on('draw', function() {
-                // Sécurise window.selectedIds comme tableau
-                if (!Array.isArray(window.selectedIds)) {
-                    try {
-                        window.selectedIds = JSON.parse(window.selectedIds);
-                        if (!Array.isArray(window.selectedIds)) window.selectedIds = [];
-                    } catch(e) { window.selectedIds = []; }
+                function remplirRegions() 
+                {
+                    const regionSelect = document.getElementById("region");
+                    for (let region in dataSenegal) 
+                    {
+                        let option = document.createElement("option");
+                        option.value = region;
+                        option.text = region;
+                        regionSelect.appendChild(option);
+                    }
                 }
-                $('.select-beneficiaire').each(function() {
-                    var id = $(this).val();
-                    $(this).prop('checked', window.selectedIds.includes(id));
-                });
-                var allChecked = $('.select-beneficiaire').length > 0 && $('.select-beneficiaire').toArray().every(function(cb) {
-                    return window.selectedIds.includes($(cb).val());
-                });
-                $('#selectAll').prop('checked', allChecked);
-            });
 
-            // Gestion du bouton de modification collective
-            document.getElementById('btnModifierSelection').addEventListener('click', function () {
-                if (window.selectedIds.length === 0) {
+                function chargerDepartements() 
+                {
+                    const region = document.getElementById("region").value;
+                    const departementSelect = document.getElementById("departement");
+                    const communeSelect = document.getElementById("commune");
+
+                    // Vider les anciennes options
+                    departementSelect.innerHTML = '<option value="">-- Choisissez un département --</option>';
+                    communeSelect.innerHTML = '<option value="">-- Choisissez une commune --</option>';
+
+                    if (region && dataSenegal[region])
+                        {
+                            const departements = Object.keys(dataSenegal[region]);
+                            departements.forEach((dep) => {
+                            let option = document.createElement("option");
+                            option.value = dep;
+                            option.text = dep;
+                            departementSelect.appendChild(option);
+                            });
+                        }
+                }
+
+                function chargerCommunes() 
+                {
+                    const region = document.getElementById("region").value;
+                    const departement = document.getElementById("departement").value;
+                    const communeSelect = document.getElementById("commune");
+
+                    // Vider les anciennes options
+                    communeSelect.innerHTML = '<option value="">-- Choisissez une commune --</option>';
+
+                    if (region && departement && dataSenegal[region] && dataSenegal[region][departement]) 
+                    {
+                        const communes = dataSenegal[region][departement];
+                        communes.forEach((commune) => {
+                        let option = document.createElement("option");
+                        option.value = commune;
+                        option.text = commune;
+                        communeSelect.appendChild(option);
+                        });
+                    }
+                }
+        </script>
+
+
+        <?php if (isset($_SESSION['import_message'])): ?>
+            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+            <script>
+                Swal.fire({
+                    icon: '<?= $_SESSION['import_status'] === 'success' ? 'success' : 'error' ?>',
+                    title: 'Résultat de l\'importation',
+                    html: `<?= addslashes($_SESSION['import_message']) ?>`,
+                    confirmButtonText: 'OK'
+                });
+            </script>
+
+        <?php 
+            // Nettoyage après affichage
+            unset($_SESSION['import_message']);
+            unset($_SESSION['import_status']);
+            endif; 
+        ?>
+
+    <!-- Ajoutez ce code dans votre section existante, après la gestion des alertes d'import -->
+        <?php if (isset($_SESSION['delete_message'])): ?>
+            <script> 
+                Swal.fire({
+                    icon: '<?= $_SESSION['delete_status'] === 'success' ? 'success' : 'error' ?>',
+                    title: '<?= $_SESSION['delete_status'] === 'success' ? "Suppression réussie" : "Erreur" ?>',
+                    html: `<?= addslashes($_SESSION['delete_message']) ?>`,
+                    confirmButtonText: 'OK'
+                });
+            </script>
+
+        <?php 
+            // Nettoyage après affichage
+                unset($_SESSION['delete_message']);
+                unset($_SESSION['delete_status']);
+                endif; 
+        ?>
+    <!-- Supprimer la selection -->
+        <script>
+            document.getElementById("btnSupprimerSelection").addEventListener("click", function (e) {
+                e.preventDefault();
+
+                // Récupérer les cases cochées
+                const selected = Array.from(document.querySelectorAll(".select-beneficiaire:checked"))
+                    .map(cb => cb.value);
+
+                if (selected.length === 0) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Aucun bénéficiaire sélectionné',
-                        text: 'Veuillez sélectionner au moins un bénéficiaire.',
+                        title: 'Aucune sélection',
+                        text: 'Veuillez sélectionner au moins un bénéficiaire à supprimer.',
                         confirmButtonText: 'OK'
                     });
                     return;
                 }
-                document.getElementById('selectedIds').value = JSON.stringify(window.selectedIds);
-                const modal = new bootstrap.Modal(document.getElementById('modalModification'));
-                modal.show();
+
+                // Confirmation avant suppression
+                Swal.fire({
+                    title: 'Confirmer la suppression',
+                    text: `Voulez-vous vraiment supprimer ${selected.length} bénéficiaire(s) ?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Oui, supprimer',
+                    cancelButtonText: 'Annuler'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Suppression via fetch
+                        fetch("supprime_selection.php", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ ids: selected })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Suppression réussie',
+                                    text: 'Les bénéficiaires sélectionnés ont été supprimés.',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+
+                                // Supprimer les lignes correspondantes du tableau
+                                selected.forEach(id => {
+                                    const row = document.querySelector(`input[value='${id}']`).closest("tr");
+                                    if (row) row.remove();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Erreur',
+                                    text: data.message || "Une erreur est survenue lors de la suppression."
+                                });
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Erreur de communication',
+                                text: "Impossible de contacter le serveur."
+                            });
+                        });
+                    }
+                });
             });
-        });
-    </script>
-    <!-- region departement commune -->
-    <script>
-        let dataSenegal = {};
-
-        window.onload = function () {
-        // Charger le fichier JSON
-        fetch("regions_departements_communes_senegal.json")
-            .then((res) => res.json())
-            .then((data) => {
-            dataSenegal = data;
-            remplirRegions();
-            });
-        };
-
-        function remplirRegions() {
-        const regionSelect = document.getElementById("region");
-        for (let region in dataSenegal) {
-            let option = document.createElement("option");
-            option.value = region;
-            option.text = region;
-            regionSelect.appendChild(option);
-        }
-        }
-
-        function chargerDepartements() {
-        const region = document.getElementById("region").value;
-        const departementSelect = document.getElementById("departement");
-        const communeSelect = document.getElementById("commune");
-
-        // Vider les anciennes options
-        departementSelect.innerHTML = '<option value="">-- Choisissez un département --</option>';
-        communeSelect.innerHTML = '<option value="">-- Choisissez une commune --</option>';
-
-        if (region && dataSenegal[region]) {
-            const departements = Object.keys(dataSenegal[region]);
-            departements.forEach((dep) => {
-            let option = document.createElement("option");
-            option.value = dep;
-            option.text = dep;
-            departementSelect.appendChild(option);
-            });
-        }
-        }
-
-        function chargerCommunes() {
-        const region = document.getElementById("region").value;
-        const departement = document.getElementById("departement").value;
-        const communeSelect = document.getElementById("commune");
-
-        // Vider les anciennes options
-        communeSelect.innerHTML = '<option value="">-- Choisissez une commune --</option>';
-
-        if (
-            region &&
-            departement &&
-            dataSenegal[region] &&
-            dataSenegal[region][departement]
-        ) {
-            const communes = dataSenegal[region][departement];
-            communes.forEach((commune) => {
-            let option = document.createElement("option");
-            option.value = commune;
-            option.text = commune;
-            communeSelect.appendChild(option);
-            });
-        }
-}
-    </script>
-
-
-
-
-
-    <?php if (isset($_SESSION['import_message'])): ?>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        Swal.fire({
-            icon: '<?= $_SESSION['import_status'] === 'success' ? 'success' : 'error' ?>',
-            title: 'Résultat de l\'importation',
-            html: `<?= addslashes($_SESSION['import_message']) ?>`,
-            confirmButtonText: 'OK'
-        });
-    </script>
-
-    <?php 
-    // Nettoyage après affichage
-    unset($_SESSION['import_message']);
-    unset($_SESSION['import_status']);
-    endif; 
-    ?>
-
-    <!-- Ajoutez ce code dans votre section existante, après la gestion des alertes d'import -->
-
-    <script> 
-        <?php if (isset($_SESSION['delete_message'])): ?>
-        Swal.fire({
-            icon: '<?= $_SESSION['delete_status'] === 'success' ? 'success' : 'error' ?>',
-            title: '<?= $_SESSION['delete_status'] === 'success' ? "Suppression réussie" : "Erreur" ?>',
-            html: `<?= addslashes($_SESSION['delete_message']) ?>`,
-            confirmButtonText: 'OK'
-        });
-    </script>
-        <?php 
-        // Nettoyage après affichage
-        unset($_SESSION['delete_message']);
-        unset($_SESSION['delete_status']);
-        endif; 
-        ?>
+        </script>
 
   
-
-
         
 </body>
 </html>

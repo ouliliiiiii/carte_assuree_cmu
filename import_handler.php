@@ -157,10 +157,10 @@ try {
         // SEXE
         if (isset($donnee['Sexe'])) {
             $val = strtoupper(trim($donnee['Sexe']));
-            if (in_array($val, ['F', 'FEMME'])) {
-                $donnee['Sexe'] = 'F';
-            } elseif (in_array($val, ['H', 'HOMME'])) {
-                $donnee['Sexe'] = 'H';
+            if (in_array($val, ['Féminin'])) {
+                $donnee['Sexe'] = 'Féminin';
+            } elseif (in_array($val, ['Masculin'])) {
+                $donnee['Sexe'] = 'Masculin';
             } else {
                 $listeErreurs[] = "Erreur à la ligne $ligne : Valeur de 'Sexe' invalide ('{$donnee['Sexe']}'). Valeurs acceptées : F, H, Femme, Homme.";
                 continue;
@@ -178,7 +178,7 @@ try {
         // TYPE_BENEFICIAIRE
         $typeBenef = strtoupper(trim($donnee['Type_Beneficiaire'] ?? ''));
         if ($regime === 'CONTRIBUTIF') {
-            $typesAcceptes = ['CLASSIQUE', 'ELEVE', 'DAARA'];
+            $typesAcceptes = ['CLASSIQUE', 'ELEVE', 'NDONGO DAARA'];
         } else {
             $typesAcceptes = ['PLAN SESAME', 'FEMME ENCEINTE', 'ENFANT 0-5ANS', 'MENAGE BSF', 'TITULAIRE CEC'];
         }
@@ -348,6 +348,10 @@ try {
 
     $_SESSION['import_status'] = empty($errors) ? 'success' : 'error';
     $_SESSION['import_message'] = $message;
+    // Log de l'import pour la traçabilité
+    $actor = $_SESSION['user'] ?? 'system';
+    $logDetails = 'Importation #' . $import_id . ' - ' . $imported . ' lignes importées';
+    log_action($pdo, $actor, 'importation', $import_id, $logDetails);
 
     header('Location: importerliste.php');
     exit;

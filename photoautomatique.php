@@ -1,5 +1,6 @@
 <?php
 require 'db.php';
+require 'audit.php';
 
 $response = ['success' => false, 'message' => '', 'photo_url' => ''];
 
@@ -33,13 +34,28 @@ if ($id) {
 
 $destination = $uploadDir . $newFilename;
 
-if (move_uploaded_file($photo['tmp_name'], $destination)) {
+    if (move_uploaded_file($photo['tmp_name'], $destination)) {
     if ($id) {
         $stmt = $pdo->prepare("UPDATE beneficiaires SET photo = ? WHERE id = ?");
         $stmt->execute([$destination, $id]);
+            // Récupérer le bénéficiaire pour construire une cible lisible (nom et prénom)
+            $s = $pdo->prepare('SELECT Nom, Prenom, Code_Immatriculation FROM beneficiaires WHERE id = ?');
+            $s->execute([$id]);
+            $b = $s->fetch(PDO::FETCH_ASSOC);
+            $target = $b ? trim(($b['Nom'] ?? '') . ' ' . ($b['Prenom'] ?? '')) : $id;
+            $codeFound = $b['Code_Immatriculation'] ?? $id;
+            $detailsText = 'modification photo beneficiaire ' . $codeFound;
+            log_action($pdo, $_SESSION['user'] ?? 'system', 'modification', $target, $detailsText);
     } else {
         $stmt = $pdo->prepare("UPDATE beneficiaires SET photo = ? WHERE Code_Immatriculation = ?");
         $stmt->execute([$destination, $code]);
+            // Récupérer le bénéficiaire pour construire une cible lisible (nom et prénom)
+            $s = $pdo->prepare('SELECT Nom, Prenom FROM beneficiaires WHERE Code_Immatriculation = ?');
+            $s->execute([$code]);
+            $b = $s->fetch(PDO::FETCH_ASSOC);
+            $target = $b ? trim(($b['Nom'] ?? '') . ' ' . ($b['Prenom'] ?? '')) : $code;
+            $detailsText = 'modification photo beneficiaire ' . $code;
+            log_action($pdo, $_SESSION['user'] ?? 'system', 'modification', $target, $detailsText);
     }
 
     $response['success'] = true;

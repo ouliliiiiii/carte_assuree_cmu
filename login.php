@@ -7,23 +7,48 @@ if (isset($_SESSION['user'])) {
     header("Location: index.php");
     exit;
 }
-require_once 'db.php';
+
+require_once 'db.php'; // connexion PDO
+require_once 'audit.php';
 
 $message = '';
+// Message shown after successful registration (account will be inactive by default)
+$info = '';
+
+if (isset($_GET['registered']) && $_GET['registered'] == '1') {
+    $info = "Inscription envoyée. Votre compte est créé mais inactif. Veuillez contacter l'administrateur pour l'activer.";
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = trim($_POST['password'] ?? '');
 
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+    // 🔹 On récupère aussi le rôle et le statut associé à l'utilisateur
+    $sql = "SELECT users.*, roles.name AS role_name
+            FROM users
+            JOIN roles ON users.role_id = roles.id
+            WHERE users.username = ?";
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([$username]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($user && password_verify($password, $user['password'])) {
-        // Connexion réussie
-        $_SESSION['user'] = $user['username'];
-        header("Location: index.php");
-        exit;
+    if ($user && $user['statut'] == 0) {
+        $message = "Votre compte est désactivé. Veuillez contacter l'administrateur.";
+        // Log tentative de connexion sur compte inactif
+        log_action($pdo, $username, 'login_attempt_inactive', $username, 'Tentative de connexion sur compte inactif');
+    }
+    // si le mot de passe correspond (hash ou en clair pour compatibilité)
+    else if ($user && (password_verify($password, $user['password']) || $user['password'] === $password)) {
+    // ✅ Connexion réussie
+    $_SESSION['user'] = $user['username'];
+    $_SESSION['role'] = $user['role_name'];
+    $_SESSION['region'] = $user['region'] ?? '';
+
+    // Log connexion réussie
+    log_action($pdo, $user['username'], 'login_success', $user['username'], 'Connexion réussie');
+
+    header("Location: accueil.php");
+    exit;
     } else {
         $message = "Nom d'utilisateur ou mot de passe incorrect.";
     }
@@ -44,6 +69,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="alert alert-danger"><?= htmlspecialchars($message) ?></div>
         <?php endif; ?>
 
+        <?php if ($info): ?>
+            <div class="alert alert-info"><?= htmlspecialchars($info) ?></div>
+        <?php endif; ?>
+
         <form method="post" action="login.php">
             <div class="mb-3">
                 <label class="form-label">Nom d'utilisateur</label>
@@ -55,6 +84,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <button type="submit" class="btn btn-primary w-100">Se connecter</button>
         </form>
+        <div class="text-center mt-3">
+            <a href="inscription.php" class="btn btn-outline-secondary w-100">Inscription</a>
+        </div>
     </div>
 </body>
 </html>

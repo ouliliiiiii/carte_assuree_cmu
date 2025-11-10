@@ -13,6 +13,40 @@ $stmt = $pdo->prepare("SELECT * FROM beneficiaires WHERE Code_Immatriculation = 
 $stmt->execute([$code]);
 $beneficiaire = $stmt->fetch();
 
+// Récupérer tous les paramètres du bénéficiaire
+$stmtParam = $pdo->prepare("
+    SELECT p.categorie, p.valeur
+    FROM parametres p
+    INNER JOIN beneficiaire_parametres bp ON bp.parametre_id = p.id
+    WHERE bp.beneficiaire_id = :beneficiaire_id
+    ORDER BY p.categorie
+");
+$stmtParam->execute([':beneficiaire_id' => $beneficiaire['id_beneficiaire']]);
+$benefParams = $stmtParam->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_COLUMN);
+
+// Récupérer toutes les options disponibles avec info parent pour gérer dépendances
+$stmtOptions = $pdo->query("
+    SELECT p.id, p.categorie, p.valeur, 
+           pr.categorie AS parent_categorie, pr.valeur AS parent_valeur
+    FROM parametres p
+    LEFT JOIN parametres pr ON p.parent_id = pr.id
+    WHERE p.categorie IS NOT NULL AND p.categorie != ''
+    ORDER BY p.categorie, p.valeur
+");
+$params = $stmtOptions->fetchAll(PDO::FETCH_ASSOC);
+
+// Organiser les options par catégorie
+$allOptions = [];
+foreach ($params as $p) {
+    $categorie = $p['categorie'];
+    if (!isset($allOptions[$categorie])) {
+        $allOptions[$categorie] = [];
+    }
+    $allOptions[$categorie][] = $p;
+}
+
+
+
 if (!$beneficiaire) {
     header('Location: accueil.php');
     exit;
@@ -39,7 +73,7 @@ function formatDateForInput($dateStr) {
  
 </head>
 <body>
-       
+ 
     <div class="container mb-5">
 <!-- Section Actions -->
         <div class="card mb-4">
@@ -72,11 +106,11 @@ function formatDateForInput($dateStr) {
                         <div class="card-header">
                             <i class="bi bi-person-lines-fill me-2"></i>Informations Personnelles
                         </div>
-                        <div class="form-section">
+                    <div class="form-section">
                             
 
 
-           <div class="mb-3 text-center mt-3">
+                    <div class="mb-3 text-center mt-3">
                                 <input type="file" name="photo" id="photo" accept="image/*" class="d-none" onchange="previewPhoto(event)">
                                 <img id="photoPreview" src="<?= !empty($beneficiaire['photo']) ? htmlspecialchars($beneficiaire['photo']) : 'images/avatar.png' ?>" 
                                     alt="Photo du bénéficiaire"
@@ -135,28 +169,28 @@ function formatDateForInput($dateStr) {
                             
                             <div class="row">
                                <div class="col-md-6 mb-3">
-                                <label for="region" class="form-label">Région</label>
-                                <select name="Region" id="region" class="form-select" onchange="chargerDepartements();">
-                                    <option value="">-- Choisissez une région --</option>
-                                    <!-- Les options seront ajoutées par JS -->
-                                </select>
-                            </div>
+                                    <label for="region" class="form-label">Région</label>
+                                    <select name="Region" id="region" class="form-select" onchange="chargerDepartements();">
+                                        <option value="">-- Choisissez une région --</option>
+                                        <!-- Les options seront ajoutées par JS -->
+                                    </select>
+                                </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label for="departement" class="form-label">Département</label>
-                                <select name="Departement" id="departement" class="form-select" onchange="chargerCommunes()">
-                                    <option value="">-- Choisissez un département --</option>
-                                    <!-- Options ajoutées par JS -->
-                                </select>
-                            </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="departement" class="form-label">Département</label>
+                                    <select name="Departement" id="departement" class="form-select" onchange="chargerCommunes()">
+                                        <option value="">-- Choisissez un département --</option>
+                                        <!-- Options ajoutées par JS -->
+                                    </select>
+                                </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label for="commune" class="form-label">Commune</label>
-                                <select name="Commune" id="commune" class="form-select">
-                                    <option value="">-- Choisissez une commune --</option>
-                                    <!-- Options ajoutées par JS -->
-                                </select>
-                            </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="commune" class="form-label">Commune</label>
+                                    <select name="Commune" id="commune" class="form-select">
+                                        <option value="">-- Choisissez une commune --</option>
+                                        <!-- Options ajoutées par JS -->
+                                    </select>
+                                </div>
 
                             </div>
                         </div>
@@ -167,61 +201,33 @@ function formatDateForInput($dateStr) {
                         <div class="card-header">
                              <i class="bi bi-file-earmark-medical-fill me-2"></i>Informations d'Affiliation
                         </div>
-                        <div class="form-section">
-                            <div class="mb-3">
-                                <label for="regime" class="form-label">Régime</label>
-                                <select name="regime" id="regime" class="form-select" onchange="mettreAJourTypes()">
-                                    <option value="">-- Sélectionnez un régime --</option>
-                                    <option value="Contributif" <?= $beneficiaire['Regime'] === 'Contributif' ? 'selected' : '' ?>>Contributif</option>
-                                    <option value="Non Contributif" <?= $beneficiaire['Regime'] === 'Non Contributif' ? 'selected' : '' ?>>Non Contributif</option>
-                                </select>
+                        <div class="form-section mt-3">
+                           <div class="row">
+                              
                             </div>
-                            
-                            <div class="mb-3">
-                                <label for="type_adhesion" class="form-label">Type d'Adhésion</label>
-                                <select name="type_adhesion" id="type_adhesion" class="form-select">
-                                    <option value="">-- Sélectionnez un type --</option>
-                                    <?php
-                                    $typesAdhesion = ['Individuelle', 'Familiale', 'Groupe', 'Adhesion Systematique'];
-                                    foreach ($typesAdhesion as $type) {
-                                        $selected = ($beneficiaire['Type_Adhesion'] === $type) ? 'selected' : '';
-                                        echo "<option value=\"".htmlspecialchars($type)."\" $selected>".htmlspecialchars($type)."</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="assureur" class="form-label">Assureur</label>
-                                <select name="assureur" id="assureur" class="form-select">
-                                    <option value="">-- Sélectionnez un assureur --</option>
-                                    <?php
-                                    $assureurs = ['SENCSU', 'SOURA', 'MSD'];
-                                    foreach ($assureurs as $a) {
-                                        $selected = ($beneficiaire['Assureur'] === $a) ? 'selected' : '';
-                                        echo "<option value=\"".htmlspecialchars($a)."\" $selected>".htmlspecialchars($a)."</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="type_beneficiaire" class="form-label">Type de Bénéficiaire</label>
-                                <select name="type_beneficiaire" id="type_beneficiaire" class="form-select">
-                                    <option value="">-- Sélectionnez un type --</option>
-                                    <?php
-                                    $typesBenef = [
-                                        'CLASSIQUE', 'CMU-ELEVE', 'CMU-DAARA', 'PLAN SESAME',
-                                        'FEMME ENCEINTE', 'ENFANT 0-5ANS', 'MENAGE BSF', 'TITULAIRE CEC'
-                                    ];
-                                    foreach ($typesBenef as $type) {
-                                        $selected = ($beneficiaire['Type_Beneficiaire'] === $type) ? 'selected' : '';
-                                        echo "<option value=\"".htmlspecialchars($type)."\" $selected>".htmlspecialchars($type)."</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-                            
+<?php foreach($allOptions as $categorie => $options): ?>
+    <?php
+        $selectId = strtolower(str_replace(' ', '_', $categorie));
+        $selectedValue = $benefParams[$categorie][0] ?? null; // une seule valeur sélectionnée
+    ?>
+    <div class="mb-3">
+        <label for="<?= $selectId ?>" class="form-label"><?= htmlspecialchars($categorie) ?></label>
+        <select name="<?= $selectId ?>" id="<?= $selectId ?>" class="form-select">
+            <option value="">-- Sélectionnez <?= htmlspecialchars($categorie) ?> --</option>
+            <?php foreach ($options as $opt): ?>
+                <option value="<?= htmlspecialchars($opt['valeur']) ?>"
+                    <?= ($opt['valeur'] == $selectedValue) ? 'selected' : '' ?>
+                    data-parent-categorie="<?= htmlspecialchars($opt['parent_categorie']) ?>"
+                    data-parent-valeur="<?= htmlspecialchars($opt['parent_valeur']) ?>">
+                    <?= htmlspecialchars($opt['valeur']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+<?php endforeach; ?>
+
+
+
                             <div class="mb-3">
                                 <label for="groupe" class="form-label">Groupe d'Appartenance</label>
                                 <input type="text" name="groupe" id="groupe" class="form-control" 
@@ -234,7 +240,6 @@ function formatDateForInput($dateStr) {
                                     <select name="type_cotisation" id="type_cotisation" class="form-select">
                                         <option value="">-- Sélectionnez --</option>
                                         <option value="Annuelle" <?= $beneficiaire['Type_Cotisation'] === 'Annuelle' ? 'selected' : '' ?>>Annuelle</option>
-                                        <option value="Subventionne" <?= $beneficiaire['Type_Cotisation'] === 'Annuelle' ? 'selected' : '' ?>>Subventionné</option>
                                         <option value="Semestrielle" <?= $beneficiaire['Type_Cotisation'] === 'Semestrielle' ? 'selected' : '' ?>>Semestrielle</option>
                                     </select>
                                 </div>
@@ -269,46 +274,7 @@ function formatDateForInput($dateStr) {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
-    // Mise à jour dynamique des types de bénéficiaires
-    function mettreAJourTypes() {
-        const regime = document.getElementById("regime").value;
-        const selectType = document.getElementById("type_beneficiaire");
 
-        // Nettoie la liste actuelle
-        selectType.innerHTML = '<option value="">-- Sélectionnez un type --</option>';
-
-        let options = [];
-
-        if (regime === "Contributif") {
-            options = [
-                { value: "CLASSIQUE", text: "CLASSIQUE" },
-                { value: "CMU-ELEVE", text: "CMU-ELEVE" },
-                { value: "CMU-DAARA", text: "CMU-DAARA" }
-            ];
-        } else if (regime === "Non Contributif") {
-            options = [
-                { value: "PLAN SESAME", text: "PLAN SESAME" },
-                { value: "FEMME ENCEINTE", text: "FEMME ENCEINTE" },
-                { value: "ENFANT 0-5ANS", text: "ENFANT 0-5 ANS" },
-                { value: "MENAGE BSF", text: "MENAGE BSF" },
-                { value: "TITULAIRE CEC", text: "TITULAIRE CEC" }
-            ];
-        }
-
-        // Ajoute dynamiquement les nouvelles options
-        options.forEach(option => {
-            const opt = document.createElement("option");
-            opt.value = option.value;
-            opt.textContent = option.text;
-            selectType.appendChild(opt);
-        });
-
-        // Sélectionne la valeur existante après mise à jour
-        const currentValue = "<?= htmlspecialchars($beneficiaire['Type_Beneficiaire']) ?>";
-        if (currentValue) {
-            selectType.value = currentValue;
-        }
-    }
 
     // Initialiser les types en fonction du régime sélectionné
     document.addEventListener('DOMContentLoaded', function() {
@@ -438,78 +404,137 @@ function formatDateForInput($dateStr) {
             reader.readAsDataURL(file);
         }
 
-          let dataSenegal = {};
+       let dataSenegal = {};
+const beneficiaireRegion = "<?= addslashes($beneficiaire['Region']) ?>";
+const beneficiaireDepartement = "<?= addslashes($beneficiaire['Departement']) ?>";
+const beneficiaireCommune = "<?= addslashes($beneficiaire['Commune']) ?>";
 
-        window.onload = function () {
-        // Charger le fichier JSON
-        fetch("regions_departements_communes_senegal.json")
-            .then((res) => res.json())
-            .then((data) => {
+function remplirRegions() {
+    const regionSelect = document.getElementById("region");
+    regionSelect.innerHTML = '<option value="">-- Choisissez une région --</option>';
+    for (let region in dataSenegal) {
+        let option = document.createElement("option");
+        option.value = region;
+        option.text = region;
+        if (region === beneficiaireRegion) option.selected = true;
+        regionSelect.appendChild(option);
+    }
+}
+
+function chargerDepartements() {
+    const region = document.getElementById("region").value;
+    const departementSelect = document.getElementById("departement");
+    const communeSelect = document.getElementById("commune");
+    departementSelect.innerHTML = '<option value="">-- Choisissez un département --</option>';
+    communeSelect.innerHTML = '<option value="">-- Choisissez une commune --</option>';
+
+    let depSelectionne = null;
+
+    if(region && dataSenegal[region]) {
+        Object.keys(dataSenegal[region]).forEach(dep => {
+            let option = document.createElement("option");
+            option.value = dep;
+            option.text = dep;
+            if(dep === beneficiaireDepartement) {
+                option.selected = true;
+                depSelectionne = dep;
+            }
+            departementSelect.appendChild(option);
+        });
+    }
+
+    // Appeler chargerCommunes() avec le département sélectionné
+    if(depSelectionne) {
+        chargerCommunes(depSelectionne);
+    }
+}
+
+
+function chargerCommunes(departement = null) {
+    const region = document.getElementById("region").value;
+    const departementSelect = document.getElementById("departement");
+    const communeSelect = document.getElementById("commune");
+    communeSelect.innerHTML = '<option value="">-- Choisissez une commune --</option>';
+
+    const dep = departement || departementSelect.value;
+
+    if(region && dep && dataSenegal[region] && dataSenegal[region][dep]) {
+        dataSenegal[region][dep].forEach(commune => {
+            let option = document.createElement("option");
+            option.value = commune;
+            option.text = commune;
+            if(commune === beneficiaireCommune) option.selected = true;
+            communeSelect.appendChild(option);
+        });
+    }
+}
+
+
+window.onload = function() {
+    fetch("regions_departements_communes_senegal.json")
+        .then(res => res.json())
+        .then(data => {
             dataSenegal = data;
-            remplirRegions();
-            });
-        };     
-
-        const beneficiaireRegion = "<?= addslashes($beneficiaire['Region']) ?>";
-        const beneficiaireDepartement = "<?= addslashes($beneficiaire['Departement']) ?>";
-        const beneficiaireCommune = "<?= addslashes($beneficiaire['Commune']) ?>";
-        function remplirRegions() 
-        { 
+            
+            // 1. Remplir les régions et sélectionner celle du bénéficiaire
             const regionSelect = document.getElementById("region");
             regionSelect.innerHTML = '<option value="">-- Choisissez une région --</option>';
             for (let region in dataSenegal) {
                 let option = document.createElement("option");
                 option.value = region;
                 option.text = region;
-                if(region === beneficiaireRegion) option.selected = true;
+                if (region === beneficiaireRegion) option.selected = true;
                 regionSelect.appendChild(option);
             }
-        }
 
-        function chargerDepartements() {
-            const region = document.getElementById("region").value;
+            // 2. Remplir les départements en fonction de la région sélectionnée
             const departementSelect = document.getElementById("departement");
-            const communeSelect = document.getElementById("commune");
-
             departementSelect.innerHTML = '<option value="">-- Choisissez un département --</option>';
-            communeSelect.innerHTML = '<option value="">-- Choisissez une commune --</option>';
-
-            if (region && dataSenegal[region]) {
-                const departements = Object.keys(dataSenegal[region]);
-                departements.forEach((dep) => {
+            if (beneficiaireRegion && dataSenegal[beneficiaireRegion]) {
+                Object.keys(dataSenegal[beneficiaireRegion]).forEach(dep => {
                     let option = document.createElement("option");
                     option.value = dep;
                     option.text = dep;
-                    if(dep === beneficiaireDepartement) option.selected = true;
+                    if (dep === beneficiaireDepartement) option.selected = true;
                     departementSelect.appendChild(option);
                 });
             }
-        }
 
-        function chargerCommunes() {
-            const region = document.getElementById("region").value;
-            const departement = document.getElementById("departement").value;
+            // 3. Remplir les communes en fonction du département sélectionné
             const communeSelect = document.getElementById("commune");
-
             communeSelect.innerHTML = '<option value="">-- Choisissez une commune --</option>';
-
-            if (
-                region &&
-                departement &&
-                dataSenegal[region] &&
-                dataSenegal[region][departement]
-            ) {
-                const communes = dataSenegal[region][departement];
-                communes.forEach((commune) => {
+            if (beneficiaireRegion && beneficiaireDepartement && dataSenegal[beneficiaireRegion][beneficiaireDepartement]) {
+                dataSenegal[beneficiaireRegion][beneficiaireDepartement].forEach(commune => {
                     let option = document.createElement("option");
                     option.value = commune;
                     option.text = commune;
-                    if(commune === beneficiaireCommune) option.selected = true;
+                    if (commune === beneficiaireCommune) option.selected = true;
                     communeSelect.appendChild(option);
                 });
             }
-        }
+        });
+};
+</script>
 
-    </script>
+<script>
+document.querySelectorAll('select').forEach(sel => {
+    const filterChildOptions = () => {
+        const parentValue = sel.value;
+        document.querySelectorAll(`select option[data-parent-categorie='${sel.id}']`).forEach(opt => {
+            if(!opt.dataset.parentValeur) return; // option sans parent
+            opt.style.display = (opt.dataset.parentValeur === parentValue) ? 'block' : 'none';
+        });
+    };
+
+    sel.addEventListener('change', filterChildOptions);
+
+    // Trigger initial pour préremplissage
+    filterChildOptions();
+});
+
+
+</script>
+
+
 </body>
 </html>

@@ -66,9 +66,14 @@ if (!isset($_SESSION['user'])) {
                     <a href="accueil.php" class="btn btn-success btn-sm header-btn">
                         <i class="bi bi-people-fill me-1"></i> Registre des bénéficiaires
                     </a>
+                    <?php
+                    // Afficher le lien vers le tableau de bord pour les administrateurs et pour les agents de région
+                    $role = $_SESSION['role'] ?? '';
+                    if ($role === 'admin' || $role === 'agent' || $role === ''): ?>
                     <a href="index.php" class="btn btn-outline-secondary btn-sm header-btn">
                         <i class="bi bi-speedometer2 me-1"></i> Tableau de bord
                     </a>
+                    <?php endif; ?>
                 </div>
 
                 <!-- Informations utilisateur -->
@@ -76,7 +81,17 @@ if (!isset($_SESSION['user'])) {
                     <?php if (isset($_SESSION['user'])): ?>
                         <span class="user-info me-3 d-none d-md-block">
                             <i class="bi bi-person-circle me-1"></i>
-                            <strong><?= htmlspecialchars($_SESSION['user']) ?></strong>
+                            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                                <a href="admin_users.php" style="text-decoration:none; color:inherit;">
+                                    <strong><?= htmlspecialchars($_SESSION['user']) ?></strong>
+                                </a>
+                            <?php else: ?>
+                                <strong><?= htmlspecialchars($_SESSION['user']) ?></strong>
+                            <?php endif; ?>
+                            <?php if (!empty($_SESSION['region']) && (isset($_SESSION['role']) && $_SESSION['role'] === 'agent')): ?>
+                                <!-- Affichage discret de la région de l'agent pour debug et confirmation -->
+                                <span class="ms-2 badge bg-info text-dark" title="Région de l'agent">Région: <?= htmlspecialchars($_SESSION['region']) ?></span>
+                            <?php endif; ?>
                         </span>
                     <?php endif; ?>
                     
